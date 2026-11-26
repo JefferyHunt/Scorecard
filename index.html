@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scorecard</title>
+<meta name="theme-color" content="#c8102e" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#a50f28" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scorecard">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday: a game-night tool that reads at a glance across the table
+   IDEA the tear-off score pad in a card or board game box: ruled columns, a heavy rule under the names
+   PICTURE the live score sheet, with each player's total and progress bar pinned above the rounds
+   COLOUR white paper and black ink, card red for the band and the active cell, pawn colours for players
+   TYPE Barlow Condensed for titles and numbers, Barlow for text
+   LAYOUT laptop: red band, sheet left, this game and past games right; phone: band, finding, view switch, sheet, action bar */
+:root{color-scheme:light;--bg:#fff;--ink:#16171b;--mut:#5a6070;--line:#e2e4e9;--rule:#16171b;--soft:#f3f4f6;--cur:#fff0f2;--band:#c8102e;--acc:#c8102e;--acc-ink:#fff;--gold:#f2b705;--num:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;--txt:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#121317;--ink:#eceef3;--mut:#a1a7b4;--line:#2b2e37;--rule:#d5d8df;--soft:#1c1e24;--cur:#2b151b;--band:#a50f28;--acc:#ff6b7e;--acc-ink:#1a0b0e;--gold:#f5c02e}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#121317;--ink:#eceef3;--mut:#a1a7b4;--line:#2b2e37;--rule:#d5d8df;--soft:#1c1e24;--cur:#2b151b;--band:#a50f28;--acc:#ff6b7e;--acc-ink:#1a0b0e;--gold:#f5c02e}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%;overscroll-behavior:none}
+button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body{margin:0;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:16px/1.5 var(--txt);overflow-x:clip}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:disabled{cursor:default;opacity:.45}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+[hidden]{display:none!important}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+.band{flex:none;background:var(--band);color:#fff;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+.band-in{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:8px;min-height:62px;padding:8px 16px}
+.band h1{flex:1;margin:0;font:700 clamp(28px,4vw,36px)/1.05 var(--num);letter-spacing:-.01em}
+#titleBtn{display:inline-flex;align-items:center;gap:8px;max-width:100%;margin-left:-8px;padding:4px 8px;border:0;border-radius:8px;background:none;color:#fff;font:inherit;letter-spacing:inherit;text-align:left}
+#titleBtn:hover{background:rgb(255 255 255/.12)}
+#titleTxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#titleBtn .i{width:18px;height:18px;opacity:.75}
+.hb{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:44px;min-height:44px;padding:0 10px;border:1.5px solid rgb(255 255 255/.5);border-radius:10px;background:none;color:#fff;font-weight:600}
+.hb:hover:not(:disabled){background:rgb(255 255 255/.14)}
+.hb .w{display:none}
+.band :focus-visible{outline-color:#fff}
+@media(min-width:560px){.hb .w{display:inline}.hb{padding:0 14px}}
+
+.app{flex:1;min-height:460px;width:100%;max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"status" "tabs" "main" "dock"}
+.status{grid-area:status;display:flex;align-items:flex-start;gap:12px;padding:12px 16px 2px}
+.st-toks{flex:none;display:flex;padding-top:1px}
+.st-toks:empty{display:none}
+.st-toks .tok+.tok{margin-left:-9px}
+.st-main{margin:0;font:600 clamp(19px,2.4vw,22px)/1.25 var(--txt);text-wrap:balance}
+.st-sub{margin:2px 0 0;font-size:14px;line-height:1.4;color:var(--mut)}
+.tabs{grid-area:tabs;display:flex;gap:4px;width:calc(100% - 32px);max-width:460px;margin:8px 16px;padding:4px;border-radius:12px;background:var(--soft)}
+.tabs button{flex:1;min-height:40px;border:0;border-radius:9px;background:none;font-weight:600;color:var(--mut)}
+.tabs button[aria-pressed=true]{background:var(--bg);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.main{grid-area:main;overflow:auto;overscroll-behavior:contain;border-top:1px solid var(--line)}
+.side{grid-area:side;display:none;overflow:auto;padding:0 16px 24px}
+.dock{grid-area:dock;border-top:1px solid var(--line);background:var(--bg);padding-bottom:env(safe-area-inset-bottom)}
+.app{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+.app[data-tab=sheet] #tally,.app[data-tab=tally] #sheet{display:none}
+.app[data-tab=history] .main{display:none}
+.app[data-tab=history] .side{display:block;grid-area:main;border-top:1px solid var(--line)}
+.app.typing .status,.app.typing .tabs{display:none}
+@media(min-width:900px){
+.app{grid-template-columns:minmax(0,1fr) minmax(320px,380px);grid-template-areas:"status side" "tabs side" "main side" "dock side"}
+.side,.app[data-tab=history] .side{display:block;grid-area:side;border-top:0;border-left:1px solid var(--line);padding:4px 24px 28px}
+.app[data-tab=history] .main{display:block}
+.app[data-tab=history] #tally{display:none}
+.app.typing .status,.app.typing .tabs{display:flex}
+#tabHist{display:none}
+.status{padding:16px 24px 2px}
+.tabs{margin:10px 24px}
+}
+
+.tok{--pc:#888;position:relative;flex:none;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--pc);color:#fff;font:700 17px/1 var(--num);box-shadow:0 0 0 2px var(--bg)}
+.tok.sm{width:28px;height:28px;font-size:16px}
+.crown{position:absolute;top:-12px;right:-10px;width:19px;height:19px;fill:var(--gold);stroke:var(--bg);stroke-width:1.6;stroke-linejoin:round}
+.dl{position:absolute;bottom:-6px;right:-10px;display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 2px var(--bg)}
+.dl svg{width:13px;height:13px;fill:var(--bg);stroke:var(--ink);stroke-width:1.6}
+
+#sheet{min-height:100%}
+.grid{width:100%;margin:0 auto;border-collapse:separate;border-spacing:0;table-layout:fixed}
+.grid th,.grid td{padding:0;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle;font-weight:400}
+.grid td,.grid .ph{border-left:1px solid var(--line)}
+.grid td{padding:3px}
+.grid thead th{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:2px solid var(--rule)}
+.grid .lab{position:sticky;left:0;z-index:1;background:var(--bg);border-right:2px solid var(--rule)}
+.grid thead .lab{z-index:3;padding:0 6px 12px 16px;text-align:left;vertical-align:bottom;font:600 14px/1.2 var(--txt);color:var(--mut)}
+.grid tr.cur>*{background:var(--cur)}
+.grid .ph{padding:12px 2px 0}
+.ph.lead{background:color-mix(in srgb,var(--pc) 13%,var(--bg))}
+.pn{display:block;margin-top:5px;padding:0 4px;font:600 14px/1.25 var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt{display:block;font:700 29px/1.05 var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pt.m{font-size:24px}
+.pt.s{font-size:20px}
+.meter{display:block;height:5px;margin:5px 10px 9px;border-radius:3px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;border-radius:3px;background:var(--pc)}
+.rl{display:flex;align-items:center;gap:8px;width:100%;min-height:54px;padding:6px 6px 6px 16px;border:0;background:none;color:var(--mut);font:600 19px/1.15 var(--num);text-align:left}
+.rl .rt{font:600 14px/1.25 var(--txt);color:var(--ink);overflow-wrap:break-word}
+.cat .rl .rt{font-size:15px}
+.rl .dd{flex:none;width:10px;height:10px;border-radius:50%;background:var(--pc)}
+.rl:hover,.c:hover{background:var(--soft)}
+.c{display:block;width:100%;min-height:48px;padding:0 2px;border:2px solid transparent;border-radius:10px;background:none;color:var(--ink);font:600 24px/1 var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.c.m{font-size:20px}
+.c.s{font-size:17px}
+.c.neg{color:var(--acc)}
+.c.top{text-decoration-line:underline;text-decoration-thickness:3px;text-decoration-color:var(--pc);text-underline-offset:6px}
+.c.next{border-style:dashed;border-color:color-mix(in srgb,var(--acc) 60%,transparent)}
+.c.next::after{content:"+";color:var(--acc)}
+.c.on,.c.on:hover{border-color:var(--acc);background:var(--bg)}
+.empty{max-width:420px;margin:48px auto;padding:0 16px;text-align:center;color:var(--mut)}
+.empty .st-main{color:var(--ink)}
+.empty .btn{flex:none;margin-top:8px}
+
+#tally{max-width:680px;margin:0 auto;padding:12px 16px 20px}
+.t-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:15px;color:var(--mut)}
+.inp{width:100%;min-height:46px;padding:8px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:16px}
+.inp:focus{border-color:var(--acc)}
+.t-top .inp{width:auto;max-width:60%}
+.tl{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.tl li{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;align-items:center;gap:10px;padding:10px 10px 10px 14px;border:1px solid var(--line);border-radius:14px}
+.tl li.lead{background:color-mix(in srgb,var(--pc) 10%,var(--bg));border-color:color-mix(in srgb,var(--pc) 45%,var(--line))}
+.tn b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tn small{display:block;font-size:14px;color:var(--mut)}
+.tb{display:grid;place-items:center;width:50px;height:50px;border:1.5px solid var(--line);border-radius:50%;background:var(--bg);color:var(--ink)}
+.tb:hover{border-color:var(--ink)}
+.tt{min-width:72px;height:50px;padding:0 6px;border:0;border-radius:12px;background:none;font:700 36px/1 var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tt:hover{background:var(--soft)}
+.hint{margin:6px 0 0;font-size:14px;color:var(--mut)}
+
+.acts{display:flex;gap:10px;padding:10px 16px}
+.btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);font-weight:600;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--ink)}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.btn.pri:hover:not(:disabled){border-color:var(--acc);filter:brightness(1.08)}
+.btn.sm{flex:none;min-height:44px}
+.btn.danger{color:var(--acc)}
+@media(min-width:900px){.acts{padding:12px 24px}.acts .btn{flex:0 1 220px}}
+
+.pad{display:none;padding:8px 12px 12px;background:var(--soft)}
+.app.typing .pad{display:block}
+.app.typing .acts{display:none}
+.pad-top{display:flex;align-items:center;gap:10px;max-width:560px;margin:0 auto;padding:2px 0 10px 4px}
+.pad-who{flex:1;line-height:1.25}
+.pad-who b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pad-who span{font-size:14px;color:var(--mut)}
+.pad-out{text-align:right}
+.pad-out .x{display:block;font:700 32px/1 var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pad-out .x.long{font-size:22px}
+.pad-out .x.ph{color:var(--mut);font-weight:600}
+.pad-out .r{display:block;min-height:18px;font-size:14px;color:var(--mut);white-space:nowrap}
+.ib{flex:none;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:none;color:var(--mut)}
+.ib:hover:not(:disabled){background:var(--line);color:var(--ink)}
+.keys{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:560px;margin:0 auto}
+.keys button{display:grid;place-items:center;min-height:50px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font:600 26px/1 var(--num)}
+.keys button:active{background:var(--line)}
+.keys .op{background:transparent}
+.keys .tx{font:600 16px/1 var(--txt)}
+.keys .zero{grid-column:span 3}
+.keys .nx{grid-column:span 2;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.keys .nx:active{background:var(--acc);filter:brightness(.92)}
+.pad.add .nx{display:none}
+.pad.add .zero{grid-column:span 5}
+
+.side h2{margin:20px 0 6px;font:700 26px/1.1 var(--num)}
+.sh{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 12px}
+.find{margin:0 0 6px;font-weight:600}
+.fig{position:relative;height:230px;margin:6px 0 4px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.fig text{font:500 13px var(--txt);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+.facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;margin:8px 0 0;font-size:15px}
+.facts dt{color:var(--mut)}
+.facts dd{margin:0;font-weight:600}
+.ct{width:100%;border-collapse:collapse;font-size:15px}
+.ct th{padding:6px 8px 6px 0;border-bottom:1px solid var(--line);color:var(--mut);font-weight:600;text-align:left}
+.ct td{padding:8px 8px 8px 0;border-bottom:1px solid var(--line)}
+.ct .n{padding-right:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wl{display:grid;gap:6px;margin:6px 0 12px}
+.wr{display:grid;grid-template-columns:minmax(4.5em,8em) minmax(0,1fr) auto;align-items:center;gap:10px;font-size:15px}
+.wn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.wb i{display:block;height:100%;border-radius:5px}
+.wc{min-width:1.5em;font:700 18px/1 var(--num);font-variant-numeric:tabular-nums;text-align:right}
+.past{list-style:none;margin:0;padding:0}
+.past li{padding:12px 0 4px;border-top:1px solid var(--line)}
+.past li.none{padding-top:4px;border:0;color:var(--mut)}
+.pg-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.pg-h b{font:700 20px/1.2 var(--num);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg-h time{font-size:14px;color:var(--mut);white-space:nowrap}
+.pg-w{margin:2px 0 0}
+.pg-s{margin:2px 0 0;font-size:15px;color:var(--mut)}
+.pg-s span{white-space:nowrap}
+.pg-a{display:flex;gap:12px}
+.lnk{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;border:0;background:none;color:var(--acc);font-weight:600}
+.lnk .i{width:18px;height:18px}
+.lnk:hover{text-decoration:underline}
+.lnk.mut{color:var(--mut)}
+
+dialog{width:min(560px,calc(100% - 32px));max-height:min(88vh,860px);padding:0;border:0;border-radius:16px;background:var(--bg);color:var(--ink);box-shadow:0 12px 40px rgb(0 0 0/.25);overflow:auto}
+dialog::backdrop{background:rgb(8 8 12/.5)}
+@media(max-width:600px){dialog{width:100%;max-width:100%;max-height:92vh;margin:auto 0 0;border-radius:18px 18px 0 0}}
+.dlg-h{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+.dlg-h h2{margin:0;font:700 26px/1.1 var(--num)}
+.dlg{padding:4px 16px calc(20px + env(safe-area-inset-bottom))}
+.dlg h3{margin:22px 0 6px;font:700 21px/1.2 var(--num)}
+.fld{display:block;margin:14px 0 6px;font-weight:600}
+.inp.short{max-width:10em}
+textarea.inp{min-height:132px;line-height:1.4;resize:vertical}
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.plist li{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;align-items:center;gap:4px}
+.plist .tok{width:44px;height:44px;margin-right:4px;border:0;font-size:19px;box-shadow:none;cursor:pointer}
+.addp{display:flex;gap:8px;margin-top:8px}
+.addp .btn{flex:none}
+.chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.chips .hint{width:100%;margin:0}
+.chip{min-height:44px;padding:0 14px;border:1.5px solid var(--line);border-radius:22px;background:var(--bg);font-weight:500}
+.chip:hover{border-color:var(--ink)}
+.fs{margin:14px 0 0;padding:0;border:0}
+.fs legend{margin-bottom:6px;padding:0;font-weight:600}
+.seg{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--soft)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{flex:1;display:grid;place-items:center;min-height:42px;padding:0 8px;border-radius:9px;color:var(--mut);font-weight:600;text-align:center;cursor:pointer}
+.seg input:checked+label{background:var(--bg);color:var(--ink);box-shadow:0 0 0 1.5px var(--acc)}
+.seg input:focus-visible+label{outline:3px solid var(--acc);outline-offset:2px}
+.chk{display:flex;align-items:center;gap:12px;min-height:48px;margin-top:10px;font-weight:600}
+.chk input{width:22px;height:22px;margin:0;accent-color:var(--acc)}
+.row-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.row-acts .btn{flex:1 1 180px}
+.choice{display:block;width:100%;margin-top:10px;padding:14px 16px;border:1.5px solid var(--line);border-radius:14px;background:var(--bg);text-align:left}
+.choice:hover{border-color:var(--ink)}
+.choice b{display:block;font:700 22px/1.2 var(--num)}
+.choice span{display:block;margin-top:2px;color:var(--mut)}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));z-index:30;transform:translateX(-50%);display:flex;align-items:center;gap:8px;width:max-content;max-width:calc(100% - 32px);padding:8px 8px 8px 16px;border-radius:12px;background:var(--ink);color:var(--bg);font-weight:500}
+.toast button{min-height:40px;padding:0 10px;border:0;background:none;color:var(--bg);font-weight:700;text-decoration:underline}
+
+@keyframes pop{0%{transform:scale(.4)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.won .tok{animation:pop .6s cubic-bezier(.2,.8,.3,1.2)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-new" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="m17 9-6 6M11 9l6 6"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+<symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-crown" viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></symbol>
+<symbol id="i-cards" viewBox="0 0 24 24"><rect x="3" y="6" width="11" height="15" rx="2" transform="rotate(-12 8.5 13.5)"/><rect x="10" y="3" width="11" height="15" rx="2" transform="rotate(10 15.5 10.5)"/></symbol>
+</svg>
+
+<header class="band">
+  <div class="band-in">
+    <h1><button type="button" id="titleBtn" data-act="settings"><span id="titleTxt">Game night</span><svg class="i" aria-hidden="true"><use href="#i-edit"/></svg><span class="vh">, game settings</span></button></h1>
+    <button type="button" class="hb" id="undoBtn" data-act="undo" aria-label="Undo"><svg class="i" aria-hidden="true"><use href="#i-undo"/></svg><span class="w">Undo</span></button>
+    <button type="button" class="hb" data-act="new"><svg class="i" aria-hidden="true"><use href="#i-new"/></svg><span>New</span><span class="vh"> game</span></button>
+  </div>
+</header>
+
+<div class="app" id="app" data-tab="sheet">
+  <section class="status" id="status" aria-live="polite"></section>
+  <div class="tabs" role="group" aria-label="View">
+    <button type="button" id="tabSheet" data-act="tab" data-tab="sheet" aria-pressed="true">Sheet</button>
+    <button type="button" id="tabTally" data-act="tab" data-tab="tally" aria-pressed="false">Tally</button>
+    <button type="button" id="tabHist" data-act="tab" data-tab="history" aria-pressed="false">History</button>
+  </div>
+  <main class="main" id="main">
+    <div id="sheet"></div>
+    <div id="tally"></div>
+  </main>
+  <aside class="side" id="side" aria-label="History">
+    <section>
+      <div class="sh"><h2>This game</h2><button type="button" class="lnk" data-act="copy"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Copy results</button></div>
+      <p class="find" id="gFind"></p>
+      <div class="fig" id="fig"><svg id="chart" role="img" aria-label="Running totals by round"></svg></div>
+      <div id="gMore"></div>
+    </section>
+    <section>
+      <h2>Past games</h2>
+      <div id="wins"></div>
+      <ol class="past" id="past"></ol>
+    </section>
+  </aside>
+  <div class="dock">
+    <div class="acts" id="acts"></div>
+    <div class="pad" id="pad" role="group" aria-label="Score keypad">
+      <div class="pad-top">
+        <span id="padTok"></span>
+        <div class="pad-who"><b id="padName"></b><span id="padSub"></span></div>
+        <div class="pad-out" aria-live="polite"><span class="x" id="padX"></span><span class="r" id="padR"></span></div>
+        <button type="button" class="ib" data-k="cancel" aria-label="Cancel this entry"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="keys">
+        <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><button type="button" class="op" data-k="-" aria-label="Minus">−</button><button type="button" class="op" data-k="back" aria-label="Delete last character"><svg class="i" aria-hidden="true"><use href="#i-back"/></svg></button>
+        <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" class="op" data-k="+" aria-label="Plus">+</button><button type="button" class="op tx" data-k="clear">Clear</button>
+        <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" class="op" data-k="*" aria-label="Times">×</button><button type="button" class="op tx" data-k="done">Done</button>
+        <button type="button" class="zero" data-k="0">0</button><button type="button" class="nx tx" data-k="next">Next<svg class="i" aria-hidden="true"><use href="#i-next"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden><span></span><button type="button"></button></div>
+
+<dialog id="gameDlg" aria-labelledby="gameH">
+  <div class="dlg-h"><h2 id="gameH">Game settings</h2><button type="button" class="btn sm pri" data-act="close">Done</button></div>
+  <div class="dlg" id="gameBody"></div>
+</dialog>
+<dialog id="rowDlg" aria-labelledby="rowH">
+  <div class="dlg-h"><h2 id="rowH">Row</h2><button type="button" class="btn sm pri" data-act="close">Done</button></div>
+  <div class="dlg">
+    <label class="fld" for="rowLabel">Row name</label>
+    <input class="inp" id="rowLabel" maxlength="40" autocomplete="off" enterkeyhint="done">
+    <p class="hint" id="rowHint"></p>
+    <div class="row-acts"><button type="button" class="btn" data-act="rowclear">Clear scores</button><button type="button" class="btn danger" data-act="rowdel"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Delete row</button></div>
+  </div>
+</dialog>
+<dialog id="newDlg" aria-labelledby="newH">
+  <div class="dlg-h"><h2 id="newH">Start another game</h2><button type="button" class="ib" data-act="close" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+  <div class="dlg">
+    <button type="button" class="choice" data-act="rematch"><b>Rematch</b><span>Same players and settings, with the scores cleared.</span></button>
+    <button type="button" class="choice" data-act="fresh"><b>New game</b><span>Keep the players, then choose a name and how to score.</span></button>
+    <p class="hint" id="newHint">The current game and its scores move to past games.</p>
+  </div>
+</dialog>
+<dialog id="copyDlg" aria-labelledby="copyH">
+  <div class="dlg-h"><h2 id="copyH">Copy results</h2><button type="button" class="btn sm pri" data-act="close">Done</button></div>
+  <div class="dlg"><p class="hint">This browser blocked automatic copying. Select the text and copy it.</p><textarea class="inp" id="copyTxt" rows="9" readonly></textarea></div>
+</dialog>
+
+<script>
+{
+const $ = s => document.querySelector(s);
+const app = $('#app'), sheetEl = $('#sheet'), tallyEl = $('#tally'), statusEl = $('#status'), actsEl = $('#acts'), padEl = $('#pad'), mainEl = $('#main'), fig = $('#fig'), chart = $('#chart');
+const gameDlg = $('#gameDlg'), rowDlg = $('#rowDlg'), newDlg = $('#newDlg'), copyDlg = $('#copyDlg');
+const COLORS = [['#e03131', '#fff'], ['#1971c2', '#fff'], ['#f2b705', '#16171b'], ['#2b9348', '#fff'], ['#7048e8', '#fff'], ['#e8590c', '#fff'], ['#0c8599', '#fff'], ['#d6336c', '#fff'], ['#8d5a2b', '#fff'], ['#5c677d', '#fff']];
+const KEY = 'game-scorecard-v1', SID = Math.random().toString(36).slice(2, 10), MAXP = 12;
+const wide = matchMedia('(min-width: 900px)');
+const uid = p => p + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+const isNum = v => typeof v === 'number' && isFinite(v);
+const esc = v => String(v).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
+const fmt = n => (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-US');
+const pts = n => Math.abs(n) === 1 ? 'point' : 'points';
+const col = c => COLORS[((c % COLORS.length) + COLORS.length) % COLORS.length];
+const initial = s => (Array.from(String(s).trim())[0] || '?').toUpperCase();
+const andList = a => a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1];
+const dateStr = (t, long) => new Date(t).toLocaleDateString('en-US', {month: long ? 'long' : 'short', day: 'numeric', year: 'numeric'});
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const icon = (id, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+
+let G = null, H = [], undoStack = [], editSnap = null, celebrateUntil = 0, localOK = true, rowId = null, toastTimer = 0, saveTimer = 0, lastStatus = '';
+const ui = {tab: 'sheet', tallyRow: null};
+const pad = {open: false, mode: 'set', r: null, p: null, x: '', fresh: false};
+const cloud = {ok: false, heard: false, slow: false, gRef: null, hRef: null, pending: null, timer: 0, gSeeded: false, hMerged: false};
+const WR = {g: {busy: false, again: false, sent: ''}, h: {busy: false, again: false, sent: ''}};
+
+/* Model */
+function makeGame(o = {}) {
+  const mode = o.mode === 'categories' ? 'categories' : 'rounds';
+  const cats = mode === 'categories' && Array.isArray(o.cats) ? o.cats.filter(Boolean) : [];
+  return {
+    v: 1, id: uid('g'), title: o.title || 'Game night',
+    players: (o.players || []).slice(0, MAXP).map((p, i) => ({id: uid('p'), name: p.name || `Player ${i + 1}`, c: isNum(p.c) ? p.c : i})),
+    rows: cats.length ? cats.map(l => ({id: uid('r'), label: l, s: {}})) : [{id: uid('r'), label: '', s: {}}],
+    mode, low: !!o.low, target: isNum(o.target) && o.target > 0 ? o.target : null,
+    dealer: !!o.dealer, dealerStart: isNum(o.dealerStart) ? o.dealerStart : 0,
+    done: false, doneAt: 0, at: Date.now(), sample: !!o.sample
+  };
+}
+function sampleGame() {
+  const g = makeGame({title: 'Game night', dealer: true, sample: true, players: ['Dana', 'Kai', 'Amal', 'Quinn'].map((name, c) => ({name, c}))});
+  g.rows = [[12, 8, 15, 5], [20, 31, 9, 14], [17, 6, 22, 18], [25, 19, 11, null]].map(row => {
+    const s = {};
+    row.forEach((v, j) => { if (v !== null) s[g.players[j].id] = v; });
+    return {id: uid('r'), label: '', s};
+  });
+  g.at = 0;
+  return g;
+}
+function normalize(g) {
+  if (!g || typeof g !== 'object' || !Array.isArray(g.players) || !Array.isArray(g.rows)) return null;
+  const players = g.players.filter(p => p && typeof p.id === 'string').slice(0, MAXP).map((p, i) => ({id: p.id.slice(0, 40), name: String(p.name ?? '').slice(0, 30), c: isNum(p.c) ? Math.round(p.c) : i}));
+  const ids = new Set(players.map(p => p.id));
+  const rows = g.rows.filter(r => r && typeof r.id === 'string').slice(0, 300).map(r => {
+    const s = {};
+    if (r.s && typeof r.s === 'object') for (const k of Object.keys(r.s)) if (ids.has(k) && isNum(r.s[k])) s[k] = Math.round(r.s[k]);
+    return {id: r.id.slice(0, 40), label: String(r.label ?? '').slice(0, 40), s};
+  });
+  return {
+    v: 1, id: typeof g.id === 'string' ? g.id.slice(0, 40) : uid('g'), title: String(g.title ?? '').slice(0, 60) || 'Game night', players, rows,
+    mode: g.mode === 'categories' ? 'categories' : 'rounds', low: !!g.low, target: isNum(g.target) && g.target > 0 ? Math.round(g.target) : null,
+    dealer: !!g.dealer, dealerStart: isNum(g.dealerStart) ? Math.max(0, Math.round(g.dealerStart)) : 0,
+    done: !!g.done, doneAt: isNum(g.doneAt) ? g.doneAt : 0, at: isNum(g.at) ? g.at : 0, sample: !!g.sample
+  };
+}
+function normH(h) {
+  return (Array.isArray(h) ? h : []).filter(e => e && typeof e.id === 'string' && Array.isArray(e.players)).slice(0, 100).map(e => ({
+    id: e.id.slice(0, 40), title: String(e.title ?? 'Game').slice(0, 60), at: isNum(e.at) ? e.at : 0, low: !!e.low,
+    target: isNum(e.target) ? e.target : null, mode: e.mode === 'categories' ? 'categories' : 'rounds', dealer: !!e.dealer,
+    cats: Array.isArray(e.cats) ? e.cats.map(x => String(x).slice(0, 40)).slice(0, 40) : [], rounds: isNum(e.rounds) ? e.rounds : 0,
+    players: e.players.slice(0, MAXP).map(p => ({n: String((p && p.n) || '').slice(0, 30), c: p && isNum(p.c) ? p.c : 0, t: p && isNum(p.t) ? p.t : 0})),
+    win: Array.isArray(e.win) ? e.win.map(x => String(x).slice(0, 30)) : []
+  }));
+}
+const pname = p => (p.name || '').trim() || `Player ${G.players.indexOf(p) + 1}`;
+const lab = (r, i) => r.label || (G.mode === 'categories' ? `Category ${i + 1}` : `Round ${i + 1}`);
+const labIn = (r, i) => r.label || (G.mode === 'categories' ? `category ${i + 1}` : `round ${i + 1}`);
+function cellVal(r, pid) {
+  const v = r.s[pid];
+  if (!pad.open || pad.r !== r.id || pad.p !== pid) return v;
+  const x = evalX(pad.x);
+  if (pad.mode === 'set') return x === null ? undefined : x;
+  return x === null ? v : (isNum(v) ? v : 0) + x;
+}
+function totals() {
+  const t = {};
+  for (const p of G.players) { let s = 0; for (const r of G.rows) { const v = cellVal(r, p.id); if (isNum(v)) s += v; } t[p.id] = s; }
+  return t;
+}
+const anyScore = () => G.rows.some(r => G.players.some(p => isNum(cellVal(r, p.id))));
+const bestOf = vals => G.low ? Math.min(...vals) : Math.max(...vals);
+function leadersOf(t) { if (!G.players.length) return []; const b = bestOf(G.players.map(p => t[p.id])); return G.players.filter(p => t[p.id] === b); }
+const curRow = () => { const i = G.rows.findIndex(r => G.players.some(p => !isNum(r.s[p.id]))); return i < 0 ? G.rows.length : i; };
+function nextCell() { const r = G.rows[curRow()]; if (!r) return null; const p = G.players.find(q => !isNum(r.s[q.id])); return p ? {r: r.id, p: p.id} : null; }
+const isOver = t => G.target != null && G.players.some(p => t[p.id] >= G.target);
+const dealerAt = i => { const n = G.players.length; return n ? G.players[((G.dealerStart + i) % n + n) % n] : null; };
+const playedRows = () => G.rows.filter(r => G.players.some(p => isNum(r.s[p.id])));
+const ranked = t => [...G.players].sort((a, b) => G.low ? t[a.id] - t[b.id] : t[b.id] - t[a.id]);
+function series() {
+  const rows = [], lead = [], cum = G.players.map(() => 0), lines = G.players.map(p => ({p, v: [0]}));
+  G.rows.forEach((r, i) => {
+    if (!G.players.some(p => isNum(r.s[p.id]))) return;
+    rows.push({r, i});
+    G.players.forEach((p, j) => { if (isNum(r.s[p.id])) cum[j] += r.s[p.id]; lines[j].v.push(cum[j]); });
+    const b = bestOf(cum), ls = [];
+    cum.forEach((v, j) => { if (v === b) ls.push(j); });
+    lead.push(ls.length === 1 ? ls[0] : -1);
+  });
+  return {rows, lead, lines};
+}
+
+/* Keypad arithmetic */
+function evalX(x) {
+  x = x.replace(/[+\-*]+$/, '');
+  if (!/\d/.test(x)) return null;
+  let sum = 0, term = null, op = '+', sign = 1;
+  for (const k of x.match(/\d+|[+\-*]/g)) {
+    if (/\d/.test(k)) {
+      const v = sign * parseInt(k, 10);
+      sign = 1;
+      if (op === '*' && term !== null) term *= v;
+      else { if (term !== null) sum += term; term = op === '-' ? -v : v; }
+      op = null;
+    } else if (op === null) op = k;
+    else if (k === '-') sign = -sign;
+    else op = k;
+  }
+  if (term !== null) sum += term;
+  return Number.isSafeInteger(sum) ? Math.max(-9999999, Math.min(9999999, sum)) : null;
+}
+const prettyX = x => x.replace(/(\d)([+\-*])/g, '$1 $2 ').replace(/\*/g, '×').replace(/-/g, '−');
+
+/* Rendering */
+function tokHTML(p, cls = '', extra = '') { const [bg, fg] = col(p.c); return `<span class="tok ${cls}" style="--pc:${bg};color:${fg}" aria-hidden="true">${esc(initial(pname(p)))}${extra}</span>`; }
+const emptyHTML = () => `<div class="empty"><p class="st-main">No players yet</p><p>Add everyone at the table, then score each round here.</p><button type="button" class="btn pri" data-act="settings" data-fk="e:add">${icon('i-plus')}Add players</button></div>`;
+
+function render() {
+  const a = document.activeElement, fk = a && a.dataset ? a.dataset.fk : null;
+  const t = totals();
+  app.dataset.tab = ui.tab;
+  app.classList.toggle('typing', pad.open);
+  $('#titleTxt').textContent = G.title;
+  $('#undoBtn').disabled = !undoStack.length && !pad.open;
+  for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-pressed', String(b.dataset.tab === ui.tab));
+  renderStatus(t); renderSheet(t); renderTally(t); renderSide(); renderDock(t);
+  if (fk && (!document.activeElement || document.activeElement === document.body)) {
+    const el = (pad.open && fk.startsWith('c:') && $('.c.on')) || document.querySelector(`[data-fk="${CSS.escape(fk)}"]`);
+    if (el) el.focus({preventScroll: true});
+  }
+}
+
+function renderStatus(t) {
+  const n = G.players.length, any = n && anyScore(), over = any && isOver(t);
+  let main, sub = '', L = [];
+  if (!n) main = 'Add players to start scoring.';
+  else if (!any) main = G.mode === 'categories' ? 'Ready to score.' : 'Ready for round 1.';
+  else {
+    L = leadersOf(t);
+    const b = t[L[0].id], names = L.length < 3 ? andList(L.map(pname)) : `${L.length} players`;
+    if (G.done || over) main = L.length === 1 ? `${pname(L[0])} wins with ${fmt(b)} ${pts(b)}` : `${names} tie for the win at ${fmt(b)}`;
+    else if (n === 1) main = `${pname(L[0])} has ${fmt(b)} ${pts(b)}`;
+    else if (L.length === 1) { const d = Math.abs(b - bestOf(G.players.filter(p => p !== L[0]).map(p => t[p.id]))); main = `${pname(L[0])} leads by ${fmt(d)} ${pts(d)}`; }
+    else main = `${names} are tied at ${fmt(b)}`;
+  }
+  if (G.sample) sub = 'Sample game. Start your own with New.';
+  else if (n) {
+    const parts = [G.low ? 'Lowest total wins.' : 'Highest total wins.'];
+    if (G.target) parts.push(`The game ends at ${fmt(G.target)}.`);
+    if (G.done) { const k = playedRows().length; parts.push(G.mode === 'rounds' ? `Final scores after ${k} ${k === 1 ? 'round' : 'rounds'}.` : 'Final scores.'); }
+    else if (over) parts.push(`${andList(G.players.filter(p => t[p.id] >= G.target).map(pname))} reached ${fmt(G.target)}. Finish the game to save the result.`);
+    else if (G.mode === 'rounds') {
+      const i = curRow(), d = G.dealer ? dealerAt(i) : null, part = G.rows[i] && G.players.some(p => isNum(G.rows[i].s[p.id]));
+      parts.push(d ? `${pname(d)} deals round ${i + 1}.` : `Round ${i + 1} is ${part ? 'in progress' : 'next'}.`);
+    } else parts.push(`${G.rows.filter(r => G.players.every(p => isNum(r.s[p.id]))).length} of ${G.rows.length} categories scored.`);
+    sub = parts.join(' ');
+  }
+  const key = main + '|' + sub + '|' + L.map(p => p.id + p.c + p.name).join();
+  if (key === lastStatus) return;
+  lastStatus = key;
+  statusEl.innerHTML = `<div class="st-toks">${L.slice(0, 3).map(p => tokHTML(p, 'sm')).join('')}</div><div><p class="st-main">${esc(main)}</p>${sub ? `<p class="st-sub">${esc(sub)}</p>` : ''}</div>`;
+}
+
+function renderSheet(t) {
+  const n = G.players.length;
+  if (!n) { sheetEl.innerHTML = emptyHTML(); return; }
+  const cat = G.mode === 'categories', labW = cat ? 104 : G.rows.some(r => r.label) ? 96 : 66, any = anyScore();
+  const L = new Set(any ? leadersOf(t).map(p => p.id) : []);
+  const ci = curRow(), dIdx = G.dealer && !cat && !G.done ? ((G.dealerStart + ci) % n + n) % n : -1;
+  const nx = !G.done && !pad.open ? nextCell() : null;
+  const vals = G.players.map(p => t[p.id]), lo = Math.min(0, ...vals), hi = Math.max(...vals);
+  const pct = v => G.target ? Math.max(0, Math.min(1, v / G.target)) : hi > lo ? (v - lo) / (hi - lo) : 0;
+  const pop = G.done && Date.now() < celebrateUntil, sz = s => s.length >= 5 ? ' s' : s.length === 4 ? ' m' : '';
+  const head = G.players.map((p, i) => {
+    const lead = L.has(p.id), x = (lead ? icon('i-crown', 'crown') : '') + (i === dIdx ? `<span class="dl">${icon('i-cards', '')}</span>` : '');
+    const note = (lead ? (G.done ? ', winner' : ', leading') : '') + (i === dIdx ? ', deals this round' : '');
+    return `<th scope="col" class="ph${lead ? ' lead' : ''}${lead && pop ? ' won' : ''}" style="--pc:${col(p.c)[0]}">${tokHTML(p, '', x)}<span class="pn">${esc(pname(p))}</span><span class="pt${sz(fmt(t[p.id]))}">${fmt(t[p.id])}</span><span class="meter"><i style="width:${(pct(t[p.id]) * 100).toFixed(1)}%"></i></span>${note ? `<span class="vh">${note}</span>` : ''}</th>`;
+  }).join('');
+  const body = G.rows.map((r, ri) => {
+    const lb = lab(r, ri), rv = G.players.map(p => cellVal(r, p.id)), best = n > 1 && rv.every(isNum) ? bestOf(rv) : null;
+    const d = G.dealer && !cat ? dealerAt(ri) : null;
+    const cells = G.players.map((p, j) => {
+      const v = rv[j], has = isNum(v), on = pad.open && pad.r === r.id && pad.p === p.id;
+      const cls = 'c' + (has ? sz(fmt(v)) : '') + (on ? ' on' : '') + (nx && nx.r === r.id && nx.p === p.id ? ' next' : '') + (has && v < 0 ? ' neg' : '') + (best !== null && v === best ? ' top' : '');
+      return `<td><button type="button" class="${cls}" style="--pc:${col(p.c)[0]}" data-act="cell" data-r="${r.id}" data-p="${p.id}" data-fk="c:${r.id}:${p.id}" aria-label="${esc(pname(p))}, ${esc(lb)}: ${has ? fmt(v) : 'no score'}">${has ? fmt(v) : ''}</button></td>`;
+    }).join('');
+    const rl = cat || r.label ? `<span class="rt">${esc(lb)}</span>` : String(ri + 1);
+    return `<tr${ri === ci && !G.done ? ' class="cur"' : ''}><th scope="row" class="lab"><button type="button" class="rl" data-act="row" data-r="${r.id}" data-fk="r:${r.id}" aria-label="${esc(lb)}${d ? `, ${esc(pname(d))} deals` : ''}. Edit row">${rl}${d ? `<span class="dd" style="--pc:${col(d.c)[0]}"></span>` : ''}</button></th>${cells}</tr>`;
+  }).join('');
+  const none = G.rows.length ? '' : `<div class="empty"><p>No rows yet.</p><button type="button" class="btn pri" data-act="${cat ? 'settings' : 'addround'}">${cat ? 'Add categories' : 'Add round'}</button></div>`;
+  sheetEl.innerHTML = `<table class="grid${cat ? ' cat' : ''}" style="min-width:${labW + n * 54}px;max-width:${labW + n * 170}px"><colgroup><col style="width:${labW}px">${'<col>'.repeat(n)}</colgroup><thead><tr><th scope="col" class="lab">${cat ? 'Category' : 'Round'}</th>${head}</tr></thead><tbody>${body}</tbody></table>${none}`;
+  const th = sheetEl.querySelector('thead');
+  mainEl.style.scrollPaddingTop = (th ? th.offsetHeight + 4 : 0) + 'px';
+  mainEl.style.scrollPaddingLeft = (labW + 4) + 'px';
+}
+
+function renderTally(t) {
+  if (!G.players.length) { tallyEl.innerHTML = emptyHTML(); return; }
+  const rows = G.rows, r = rows.find(x => x.id === ui.tallyRow) || rows[rows.length - 1], ri = rows.indexOf(r);
+  const L = new Set(anyScore() ? leadersOf(t).map(p => p.id) : []);
+  const opts = rows.length ? rows.map((x, i) => `<option value="${x.id}"${x === r ? ' selected' : ''}>${esc(lab(x, i))}</option>`).join('') : '<option value="">Round 1</option>';
+  const items = G.players.map(p => {
+    const v = r ? cellVal(r, p.id) : undefined, where = esc(r ? labIn(r, ri) : 'round 1'), nm = esc(pname(p));
+    return `<li class="${L.has(p.id) ? 'lead' : ''}" style="--pc:${col(p.c)[0]}">${tokHTML(p)}<span class="tn"><b>${nm}</b><small>${isNum(v) ? `${fmt(v)} in ${where}` : `Nothing in ${where} yet`}</small></span><button type="button" class="tb" data-act="tinc" data-p="${p.id}" data-d="-1" data-fk="tm:${p.id}" aria-label="Subtract 1 from ${nm}">${icon('i-minus')}</button><button type="button" class="tt" data-act="tpad" data-p="${p.id}" data-fk="tt:${p.id}" aria-label="${nm}, total ${fmt(t[p.id])}. Enter an amount">${fmt(t[p.id])}</button><button type="button" class="tb" data-act="tinc" data-p="${p.id}" data-d="1" data-fk="tp:${p.id}" aria-label="Add 1 to ${nm}">${icon('i-plus')}</button></li>`;
+  }).join('');
+  tallyEl.innerHTML = `<div class="t-top"><label for="tallyRow">Adding to</label><select class="inp" id="tallyRow">${opts}</select></div><ul class="tl">${items}</ul><p class="hint">Plus and minus change the row shown in Adding to. Select a total to add a larger amount.</p>`;
+}
+
+function renderDock(t) {
+  const n = G.players.length, any = n && anyScore(), over = any && isOver(t), cat = G.mode === 'categories';
+  const B = (act, label, pri, ic) => `<button type="button" class="btn${pri ? ' pri' : ''}" data-act="${act}" data-fk="a:${act}"${act === 'finish' && !any ? ' disabled' : ''}>${ic ? icon(ic) : ''}${label}</button>`;
+  let h;
+  if (!n) h = B('settings', 'Add players', 1, 'i-plus');
+  else if (G.done) h = B('rematch', 'Rematch', 1, 'i-new') + B('fresh', 'New game');
+  else if (over || cat) h = B('finish', 'Finish game', 1, 'i-flag') + (cat ? '' : B('addround', 'Add round', 0, 'i-plus'));
+  else h = B('addround', 'Add round', 1, 'i-plus') + B('finish', 'Finish game', 0, 'i-flag');
+  actsEl.innerHTML = h;
+  renderPad();
+}
+
+function renderPad() {
+  padEl.classList.toggle('add', pad.mode === 'add');
+  if (!pad.open) return;
+  const p = G.players.find(z => z.id === pad.p), i = G.rows.findIndex(z => z.id === pad.r);
+  if (!p || i < 0) { pad.open = false; app.classList.remove('typing'); return; }
+  const r = G.rows[i], v = evalX(pad.x), x = $('#padX');
+  $('#padTok').innerHTML = tokHTML(p);
+  $('#padName').textContent = pname(p);
+  $('#padSub').textContent = pad.mode === 'add' ? `Add to ${labIn(r, i)}` : lab(r, i);
+  x.textContent = pad.x ? prettyX(pad.x) : (pad.mode === 'add' ? '+0' : 'Blank');
+  x.classList.toggle('ph', !pad.x);
+  x.classList.toggle('long', pad.x.length > 9);
+  $('#padR').textContent = pad.mode === 'add' ? (v !== null ? `New total ${fmt(totals()[p.id])}` : '') : (v !== null && /\d[+\-*]/.test(pad.x) ? `= ${fmt(v)}` : '');
+}
+
+function renderSide() {
+  const cat = G.mode === 'categories', has = G.players.length && playedRows().length, find = $('#gFind'), more = $('#gMore');
+  fig.hidden = cat || !has;
+  if (!has) { find.textContent = cat ? 'Category leaders appear as you score.' : 'The chart fills in as you score each round.'; more.innerHTML = ''; }
+  else if (cat) {
+    const data = G.rows.map((r, i) => {
+      const sc = G.players.filter(p => isNum(r.s[p.id]));
+      if (!sc.length) return null;
+      const b = bestOf(sc.map(p => r.s[p.id]));
+      return {name: lab(r, i), ls: sc.filter(p => r.s[p.id] === b), b};
+    }).filter(Boolean);
+    const cnt = new Map();
+    data.forEach(d => d.ls.forEach(p => cnt.set(p, (cnt.get(p) || 0) + 1)));
+    const top = [...cnt.entries()].sort((a, b) => b[1] - a[1]);
+    find.textContent = top.length > 1 && top[0][1] === top[1][1] ? `No one leads most categories yet, with ${data.length} of ${G.rows.length} scored.` : `${pname(top[0][0])} leads ${top[0][1]} of ${data.length} scored ${data.length === 1 ? 'category' : 'categories'}.`;
+    more.innerHTML = `<table class="ct"><thead><tr><th scope="col">Category</th><th scope="col">${G.low ? 'Lowest' : 'Top score'}</th><th scope="col" class="n">Points</th></tr></thead><tbody>${data.map(d => `<tr><td>${esc(d.name)}</td><td>${esc(andList(d.ls.map(pname)))}</td><td class="n">${fmt(d.b)}</td></tr>`).join('')}</tbody></table>`;
+  } else {
+    const s = series(), R = s.rows.length, last = s.lead[R - 1];
+    let changes = 0, prev = -1, f;
+    s.lead.forEach(l => { if (l >= 0) { if (prev >= 0 && l !== prev) changes++; prev = l; } });
+    if (last < 0) f = `The lead is shared after round ${s.rows[R - 1].i + 1}.`;
+    else {
+      let k = R - 1;
+      while (k > 0 && s.lead[k - 1] === last) k--;
+      const nm = pname(G.players[last]);
+      if (R === 1) f = `${nm} took the early lead.`;
+      else if (k === 0) f = G.done ? `${nm} led from start to finish.` : `${nm} has led every round.`;
+      else f = G.done ? `${nm} took the lead in round ${s.rows[k].i + 1} and held it.` : `${nm} has led since round ${s.rows[k].i + 1}.`;
+    }
+    let top = null;
+    s.rows.forEach(({r, i}) => G.players.forEach(p => { const v = r.s[p.id]; if (isNum(v) && (!top || (G.low ? v < top.v : v > top.v))) top = {v, p, i}; }));
+    find.textContent = f;
+    more.innerHTML = `<dl class="facts"><dt>Lead changes</dt><dd>${changes}</dd>${top ? `<dt>${G.low ? 'Lowest round' : 'Highest round'}</dt><dd>${esc(pname(top.p))}, ${fmt(top.v)} in round ${top.i + 1}</dd>` : ''}<dt>Rounds scored</dt><dd>${R}</dd></dl>`;
+  }
+  if (!fig.hidden) drawChart();
+  renderPast();
+}
+
+function ticks(lo, hi) {
+  const raw = (hi - lo || 1) / 4, mag = 10 ** Math.floor(Math.log10(raw)), f = raw / mag;
+  const step = Math.max(1, Math.round((f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * mag)), out = [];
+  for (let v = Math.floor(lo / step) * step; v <= Math.ceil(hi / step) * step; v += step) out.push(v);
+  return out;
+}
+function drawChart() {
+  const wd = fig.clientWidth, ht = fig.clientHeight;
+  if (!wd || !ht || fig.hidden || G.mode === 'categories' || !G.players.length) return;
+  const s = series(), R = s.rows.length;
+  if (!R) { chart.innerHTML = ''; return; }
+  const labels = s.lines.map(l => { const nm = pname(l.p); return `${nm.length > 12 ? nm.slice(0, 11) + '…' : nm} ${fmt(l.v[R])}`; });
+  const m = {l: 40, r: Math.min(160, 26 + Math.max(...labels.map(x => x.length)) * 7.2), t: 12, b: 26};
+  const iw = wd - m.l - m.r, ih = ht - m.t - m.b;
+  if (iw < 60) { chart.innerHTML = ''; return; }
+  const all = s.lines.flatMap(l => l.v), tk = ticks(Math.min(0, ...all), Math.max(1, ...all)), t0 = tk[0], t1 = tk[tk.length - 1];
+  const X = k => m.l + iw * k / R, Y = v => m.t + ih * (1 - (v - t0) / ((t1 - t0) || 1));
+  let h = tk.map(v => `<line x1="${m.l}" x2="${m.l + iw}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" style="stroke:var(--line)"${v === 0 ? '' : ' stroke-dasharray="3 4"'}/><text x="${m.l - 8}" y="${(Y(v) + 4.5).toFixed(1)}" text-anchor="end" style="fill:var(--mut)">${fmt(v)}</text>`).join('');
+  const every = R > 16 ? Math.ceil(R / 12) : wd < 520 && R > 8 ? 2 : 1;
+  h += s.rows.map((x, k) => (k + 1) % every && k + 1 !== R ? '' : `<text x="${X(k + 1).toFixed(1)}" y="${ht - 6}" text-anchor="middle" style="fill:var(--mut)">${x.i + 1}</text>`).join('');
+  h += s.lines.map(l => `<path d="${l.v.map((v, k) => (k ? 'L' : 'M') + X(k).toFixed(1) + ' ' + Y(v).toFixed(1)).join('')}" fill="none" stroke="${col(l.p.c)[0]}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+  h += s.lines.map(l => `<circle cx="${X(R).toFixed(1)}" cy="${Y(l.v[R]).toFixed(1)}" r="4" fill="${col(l.p.c)[0]}" style="stroke:var(--bg)" stroke-width="2"/>`).join('');
+  const order = s.lines.map((l, j) => ({j, y: Y(l.v[R])})).sort((a, b) => a.y - b.y), gap = 17, top = m.t + 4, bot = ht - m.b + 2;
+  order.forEach((o, k) => { o.ly = Math.max(o.y, k ? order[k - 1].ly + gap : top); });
+  const spill = order.length ? order[order.length - 1].ly - bot : 0;
+  if (spill > 0) { order.forEach(o => { o.ly -= spill; }); for (let k = order.length - 2; k >= 0; k--) order[k].ly = Math.min(order[k].ly, order[k + 1].ly - gap); }
+  h += order.map(o => {
+    const c = col(s.lines[o.j].p.c)[0], x0 = X(R) + 9;
+    return `${Math.abs(o.ly - o.y) > 2 ? `<line x1="${X(R) + 5}" y1="${o.y.toFixed(1)}" x2="${x0}" y2="${o.ly.toFixed(1)}" stroke="${c}" stroke-width="1.5"/>` : ''}<text x="${x0 + 4}" y="${(o.ly + 4.5).toFixed(1)}" style="fill:var(--ink)">${esc(labels[o.j])}</text>`;
+  }).join('');
+  chart.innerHTML = h;
+  chart.setAttribute('aria-label', `Running totals by round: ${s.lines.map(l => `${pname(l.p)} ${l.v[R]}`).join(', ')}`);
+}
+const chartRO = new ResizeObserver(() => drawChart());
+chartRO.observe(fig);
+
+function renderPast() {
+  const wins = $('#wins'), past = $('#past');
+  if (!H.length) { wins.innerHTML = ''; past.innerHTML = '<li class="none">Finished games appear here. Use Finish game when a game ends.</li>'; return; }
+  const m = new Map();
+  for (const e of H) for (const n of e.win) {
+    const k = n.trim().toLowerCase();
+    if (!k) continue;
+    const o = m.get(k) || {n: n.trim(), w: 0, c: (e.players.find(p => p.n === n) || {c: 0}).c};
+    o.w++;
+    m.set(k, o);
+  }
+  const top = [...m.values()].sort((a, b) => b.w - a.w).slice(0, 6);
+  if (H.length > 1 && top.length) {
+    const lead = top.filter(o => o.w === top[0].w);
+    const f = lead.length === 1 ? `${lead[0].n} has won ${top[0].w} of ${H.length} games.` : `${lead.length === 2 ? andList(lead.map(o => o.n)) : `${lead.length} players`} share the most wins, with ${top[0].w} each.`;
+    wins.innerHTML = `<p class="find">${esc(f)}</p><div class="wl">${top.map(o => `<div class="wr"><span class="wn">${esc(o.n)}</span><span class="wb"><i style="width:${Math.round(o.w / top[0].w * 100)}%;background:${col(o.c)[0]}"></i></span><span class="wc">${o.w}</span></div>`).join('')}</div>`;
+  } else wins.innerHTML = '';
+  past.innerHTML = H.map(e => {
+    const ps = [...e.players].sort((a, b) => e.low ? a.t - b.t : b.t - a.t), b = ps.length ? ps[0].t : 0;
+    const line = !e.win.length ? 'No winner recorded.' : e.win.length === 1 ? `${e.win[0]} won with ${fmt(b)} ${pts(b)}${e.low ? ', the lowest total' : ''}.` : `${andList(e.win)} tied at ${fmt(b)}.`;
+    return `<li><div class="pg-h"><b>${esc(e.title)}</b><time datetime="${new Date(e.at).toISOString().slice(0, 10)}">${esc(dateStr(e.at))}</time></div><p class="pg-w">${esc(line)}</p><p class="pg-s">${ps.map(p => `<span>${esc(p.n)} ${fmt(p.t)}</span>`).join(', ')}</p><div class="pg-a"><button type="button" class="lnk" data-act="again" data-id="${esc(e.id)}">Play again</button><button type="button" class="lnk mut" data-act="hdel" data-id="${esc(e.id)}" aria-label="Delete ${esc(e.title)}, ${esc(dateStr(e.at))}">Delete</button></div></li>`;
+  }).join('');
+}
+
+/* Changes and undo */
+function change(fn, o = {}) {
+  if (!o.noUndo) { undoStack.push(JSON.stringify({g: G, h: H})); if (undoStack.length > 80) undoStack.shift(); }
+  fn();
+  if (!o.histOnly) { G.sample = false; G.at = Date.now(); if (G.done) archive(); }
+  if (!o.quiet) render();
+  saveSoon();
+}
+function undo() {
+  if (pad.open) { closePad(); return; }
+  const s = undoStack.pop();
+  if (!s) return;
+  const d = JSON.parse(s);
+  G = normalize(d.g) || G; H = normH(d.h); G.at = Date.now();
+  $('#toast').hidden = true;
+  render(); saveSoon();
+}
+const editPush = () => { if (editSnap) { undoStack.push(editSnap); if (undoStack.length > 80) undoStack.shift(); editSnap = null; } };
+function entry() {
+  const t = totals();
+  return {
+    id: G.id, title: G.title, at: G.doneAt || Date.now(), low: G.low, target: G.target, mode: G.mode, dealer: G.dealer,
+    cats: G.mode === 'categories' ? G.rows.map((r, i) => lab(r, i)) : [], rounds: playedRows().length,
+    players: G.players.map(p => ({n: pname(p), c: p.c, t: t[p.id]})), win: leadersOf(t).map(pname)
+  };
+}
+function archive() { const e = entry(), i = H.findIndex(x => x.id === e.id); if (i >= 0) H[i] = e; else H.unshift(e); if (H.length > 100) H.length = 100; }
+function shelve() { if (G.sample || !playedRows().length) return; if (!G.done) { G.done = true; G.doneAt = Date.now(); } archive(); }
+
+/* Actions */
+function addRound() {
+  if (!G.players.length) { openGameDlg(); return; }
+  const last = G.rows[G.rows.length - 1];
+  if (!last || last.label || G.players.some(p => isNum(last.s[p.id]))) change(() => { G.rows.push({id: uid('r'), label: '', s: {}}); });
+  const r = G.rows[G.rows.length - 1];
+  if (ui.tab === 'tally') { ui.tallyRow = r.id; render(); }
+  else { ui.tab = 'sheet'; openPad(r.id, G.players[0].id, 'set'); }
+}
+function finish() {
+  if (!anyScore()) return;
+  celebrateUntil = Date.now() + 1500;
+  change(() => { G.done = true; G.doneAt = Date.now(); });
+  toast('Result saved to past games.');
+}
+function rematch() {
+  const old = G, n = old.players.length, played = playedRows().length;
+  const cats = old.mode === 'categories' ? old.rows.map((r, i) => lab(r, i)) : null;
+  change(() => {
+    shelve();
+    G = makeGame({title: old.title, players: old.players.map(p => ({name: pname(p), c: p.c})), low: old.low, target: old.target, mode: old.mode, dealer: old.dealer, dealerStart: n ? (old.dealerStart + played) % n : 0, cats});
+  });
+  if (ui.tab === 'history' && !wide.matches) { ui.tab = 'sheet'; render(); }
+  toast('Rematch started.', 'Undo', undo);
+}
+function freshGame() {
+  const old = G;
+  change(() => { shelve(); G = makeGame({title: 'New game', players: old.players.map(p => ({name: pname(p), c: p.c}))}); });
+  ui.tab = 'sheet';
+  render();
+  openGameDlg();
+  const f = $('#fTitle');
+  if (f) { f.focus(); f.select(); }
+}
+function playAgain(id) {
+  const e = H.find(x => x.id === id);
+  if (!e) return;
+  change(() => { shelve(); G = makeGame({title: e.title, players: e.players.map(p => ({name: p.n, c: p.c})), low: e.low, target: e.target, mode: e.mode, dealer: e.dealer, cats: e.cats}); });
+  ui.tab = 'sheet';
+  render();
+  toast(`New game of ${e.title} started.`, 'Undo', undo);
+}
+function delHist(id) {
+  const e = H.find(x => x.id === id);
+  if (!e) return;
+  change(() => { H = H.filter(x => x.id !== id); }, {histOnly: true});
+  toast(`Deleted ${e.title}.`, 'Undo', undo);
+}
+function tallyAdd(pid, d) {
+  change(() => {
+    let r = G.rows.find(x => x.id === ui.tallyRow) || G.rows[G.rows.length - 1];
+    if (!r) { r = {id: uid('r'), label: '', s: {}}; G.rows.push(r); }
+    ui.tallyRow = r.id;
+    r.s[pid] = (isNum(r.s[pid]) ? r.s[pid] : 0) + d;
+  });
+}
+function tallyPad(pid) {
+  let r = G.rows.find(x => x.id === ui.tallyRow) || G.rows[G.rows.length - 1];
+  if (!r) { r = {id: uid('r'), label: '', s: {}}; const nr = r; change(() => { G.rows.push(nr); }); }
+  ui.tallyRow = r.id;
+  openPad(r.id, pid, 'add');
+}
+function setTab(t) { if (pad.open) commitPad(); ui.tab = t; render(); saveLocal(); }
+function toast(msg, act, fn) {
+  const el = $('#toast'), b = el.querySelector('button');
+  el.querySelector('span').textContent = msg;
+  b.hidden = !act;
+  b.textContent = act || '';
+  b.onclick = act ? () => { el.hidden = true; fn(); } : null;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, act ? 6000 : 3000);
+}
+function resultsText() {
+  const t = totals(), lines = [`${G.title}, ${dateStr(G.doneAt || Date.now(), true)}`, G.low ? 'Lowest total wins' : 'Highest total wins', ''];
+  let rank = 0, prev = null;
+  ranked(t).forEach((p, i) => { if (t[p.id] !== prev) { rank = i + 1; prev = t[p.id]; } lines.push(`${rank}. ${pname(p)}: ${t[p.id].toLocaleString('en-US')}`); });
+  const k = playedRows().length;
+  lines.push('', G.mode === 'categories' ? `${G.rows.length} categories` : `${k} ${k === 1 ? 'round' : 'rounds'} played`);
+  return lines.join('\n');
+}
+async function copyResults(btn) {
+  const txt = resultsText();
+  try {
+    await navigator.clipboard.writeText(txt);
+    if (btn && btn.closest('dialog')) { const o = btn.innerHTML; btn.textContent = 'Copied'; setTimeout(() => { btn.innerHTML = o; }, 1800); }
+    else toast('Results copied.');
+  } catch (e) {
+    if (gameDlg.open) gameDlg.close();
+    $('#copyTxt').value = txt;
+    openDlg(copyDlg);
+    setTimeout(() => $('#copyTxt').select(), 50);
+  }
+}
+
+/* Keypad */
+function key(k) {
+  if (!pad.open) return;
+  if (/^\d$/.test(k)) {
+    if (pad.fresh) pad.x = '';
+    pad.fresh = false;
+    const m = pad.x.match(/\d+$/);
+    if (m && m[0] === '0') pad.x = pad.x.slice(0, -1);
+    else if (m && m[0].length >= 7) return;
+    if (pad.x.length >= 24) return;
+    pad.x += k;
+  } else if (k === '+' || k === '-' || k === '*') {
+    pad.fresh = false;
+    if (!pad.x) { if (k === '-') pad.x = '-'; }
+    else if (pad.x === '-') { if (k !== '-') pad.x = ''; }
+    else if (/[+\-*]$/.test(pad.x)) pad.x = pad.x.slice(0, -1) + k;
+    else if (pad.x.length < 24) pad.x += k;
+  } else if (k === 'back') { pad.fresh = false; pad.x = pad.x.slice(0, -1); }
+  else if (k === 'clear') { pad.fresh = false; pad.x = ''; }
+  else if (k === 'done') { commitPad(); return; }
+  else if (k === 'next') { commitPad(1); return; }
+  else if (k === 'prev') { commitPad(-1); return; }
+  else if (k === 'cancel') { closePad(); return; }
+  else return;
+  render();
+}
+function openPad(rid, pid, mode = 'set', first) {
+  if (pad.open && pad.r === rid && pad.p === pid && pad.mode === mode) { if (first) key(first); return; }
+  applyPad();
+  const r = G.rows.find(z => z.id === rid);
+  if (!r) { render(); return; }
+  const v = r.s[pid], pre = mode === 'set' && isNum(v);
+  Object.assign(pad, {open: true, mode, r: rid, p: pid, x: pre ? String(v) : '', fresh: pre});
+  if (first === '-') { pad.x = '-'; pad.fresh = false; render(); }
+  else if (first) key(first);
+  else render();
+  requestAnimationFrame(() => { const el = $('.c.on'); if (el && ui.tab === 'sheet') el.scrollIntoView({block: 'nearest', inline: 'nearest'}); });
+}
+function applyPad() {
+  if (!pad.open) return;
+  const {mode, r: rid, p: pid, x} = pad;
+  pad.open = false;
+  const r = G.rows.find(z => z.id === rid);
+  if (!r || !G.players.some(q => q.id === pid)) return;
+  const v = evalX(x), old = r.s[pid];
+  if (mode === 'set') { const nv = v === null ? undefined : v; if (nv !== old) change(() => { if (nv === undefined) delete r.s[pid]; else r.s[pid] = nv; }, {quiet: true}); }
+  else if (v) change(() => { r.s[pid] = (isNum(old) ? old : 0) + v; }, {quiet: true});
+}
+function neighbor(rid, pid, dir) {
+  const n = G.players.length, ri = G.rows.findIndex(r => r.id === rid), pi = G.players.findIndex(p => p.id === pid), k = ri * n + pi + dir;
+  if (ri < 0 || pi < 0 || k < 0 || k >= G.rows.length * n) return null;
+  return {r: G.rows[Math.floor(k / n)].id, p: G.players[k % n].id};
+}
+function commitPad(dir = 0) {
+  const {mode, r, p} = pad;
+  applyPad();
+  const nb = dir && mode === 'set' ? neighbor(r, p, dir) : null;
+  if (nb) openPad(nb.r, nb.p, 'set'); else closePad();
+}
+function closePad() { pad.open = false; pad.r = pad.p = null; pad.x = ''; render(); applyPending(); }
+
+/* Dialogs */
+function openDlg(d) { if (pad.open) commitPad(); if (!d.open) d.showModal(); }
+function syncText() {
+  if (cloud.ok) return cloud.heard ? 'Games save to your Claude account, so they follow you to your other devices.' : cloud.slow ? 'Your account can’t be reached right now. Changes are saved in this browser.' : 'Connecting to your Claude account.';
+  return localOK ? 'Games save on this device, so they’re here the next time you open Scorecard.' : 'This device isn’t saving games, so scores clear when the app closes.';
+}
+const updateSync = () => { const el = $('#syncNote'); if (el) el.textContent = syncText(); };
+function recentNames() {
+  const have = new Set(G.players.map(p => pname(p).toLowerCase())), out = [];
+  for (const e of H) for (const p of e.players) { const k = p.n.trim().toLowerCase(); if (k && !have.has(k)) { have.add(k); out.push(p.n.trim()); } }
+  return out.slice(0, 8);
+}
+function freeColor(prefer) {
+  const used = new Set(G.players.map(p => ((p.c % COLORS.length) + COLORS.length) % COLORS.length));
+  if (isNum(prefer) && !used.has(prefer % COLORS.length)) return prefer;
+  const k = COLORS.findIndex((c, i) => !used.has(i));
+  return k >= 0 ? k : G.players.length;
+}
+function nextColor(cur) {
+  const used = new Set(G.players.map(p => ((p.c % COLORS.length) + COLORS.length) % COLORS.length));
+  for (let k = 1; k <= COLORS.length; k++) { const c = (cur + k) % COLORS.length; if (!used.has(c)) return c; }
+  return (cur + 1) % COLORS.length;
+}
+function openGameDlg() {
+  $('#gameBody').innerHTML = `
+  <label class="fld" for="fTitle">Game name</label>
+  <input class="inp" id="fTitle" maxlength="60" autocomplete="off" value="${esc(G.title)}">
+  <h3>Players</h3>
+  <ul class="plist" id="plist"></ul>
+  <div class="addp"><label class="vh" for="fNew">New player name</label><input class="inp" id="fNew" maxlength="30" placeholder="Player name" autocomplete="off" enterkeyhint="done"><button type="button" class="btn" id="addBtn" data-act="padd">${icon('i-plus')}Add</button></div>
+  <div class="chips" id="chips"></div>
+  <h3>Scoring</h3>
+  <fieldset class="fs"><legend>Winner</legend><div class="seg"><input type="radio" name="fWin" id="fHigh" value="high"${G.low ? '' : ' checked'}><label for="fHigh">Highest total</label><input type="radio" name="fWin" id="fLow" value="low"${G.low ? ' checked' : ''}><label for="fLow">Lowest total</label></div></fieldset>
+  <label class="fld" for="fTarget">Target score</label>
+  <input class="inp short" id="fTarget" inputmode="numeric" maxlength="7" placeholder="None" autocomplete="off" value="${G.target ?? ''}">
+  <p class="hint">Optional. The game ends when any player reaches this total.</p>
+  <fieldset class="fs"><legend>Rows</legend><div class="seg"><input type="radio" name="fMode" id="fRounds" value="rounds"${G.mode === 'rounds' ? ' checked' : ''}><label for="fRounds">Rounds</label><input type="radio" name="fMode" id="fCats" value="categories"${G.mode === 'categories' ? ' checked' : ''}><label for="fCats">Categories</label></div></fieldset>
+  <p class="hint" id="modeHint"></p>
+  <div id="catBox"><label class="fld" for="fCatList">Categories, one per line</label><textarea class="inp" id="fCatList" rows="6" placeholder="Routes&#10;Sets&#10;Bonus cards"></textarea></div>
+  <div id="dealerBox"><label class="chk"><input type="checkbox" id="fDealer"${G.dealer ? ' checked' : ''}>Rotate the dealer each round</label><div id="firstBox"><label class="fld" for="fFirst">First dealer</label><select class="inp" id="fFirst"></select></div></div>
+  <h3>Results</h3>
+  <div class="row-acts"><button type="button" class="btn" data-act="copy">${icon('i-copy')}Copy results</button>${G.done ? '<button type="button" class="btn" data-act="resume">Resume game</button>' : ''}</div>
+  <p class="hint" id="syncNote"></p>`;
+  $('#fCatList').value = G.rows.map((r, i) => lab(r, i)).join('\n');
+  refreshDlg();
+  openDlg(gameDlg);
+}
+function refreshDlg() {
+  const list = $('#plist');
+  if (!list) return;
+  const a = document.activeElement, fk = a && a.dataset ? a.dataset.fk : null;
+  const last = G.players.length - 1;
+  list.innerHTML = G.players.map((p, i) => {
+    const [bg, fg] = col(p.c), nm = esc(pname(p));
+    return `<li><button type="button" class="tok" style="--pc:${bg};color:${fg}" data-act="pcolor" data-p="${p.id}" data-fk="pc:${p.id}" aria-label="Change color for ${nm}">${esc(initial(pname(p)))}</button><input class="inp" id="pn-${p.id}" data-p="${p.id}" value="${esc(p.name)}" maxlength="30" autocomplete="off" aria-label="Player ${i + 1} name"><button type="button" class="ib" data-act="pup" data-p="${p.id}" data-fk="pu:${p.id}" aria-label="Move ${nm} up"${i === 0 ? ' disabled' : ''}>${icon('i-up')}</button><button type="button" class="ib" data-act="pdown" data-p="${p.id}" data-fk="pd:${p.id}" aria-label="Move ${nm} down"${i === last ? ' disabled' : ''}>${icon('i-down')}</button><button type="button" class="ib" data-act="pdel" data-p="${p.id}" data-fk="px:${p.id}" aria-label="Remove ${nm}">${icon('i-trash')}</button></li>`;
+  }).join('');
+  const rec = G.players.length < MAXP ? recentNames() : [];
+  $('#chips').innerHTML = rec.length ? `<p class="hint">Add a recent player:</p>${rec.map(n => `<button type="button" class="chip" data-act="chip" data-n="${esc(n)}">${esc(n)}</button>`).join('')}` : '';
+  const cat = G.mode === 'categories';
+  $('#catBox').hidden = !cat;
+  $('#dealerBox').hidden = cat;
+  $('#modeHint').textContent = cat ? 'Score a fixed list, like an end-of-game score sheet.' : 'Add a row for each round as you play.';
+  $('#firstBox').hidden = !G.dealer || !G.players.length;
+  $('#fFirst').innerHTML = G.players.map((p, i) => `<option value="${i}"${i === G.dealerStart % (G.players.length || 1) ? ' selected' : ''}>${esc(pname(p))}</option>`).join('');
+  $('#addBtn').disabled = G.players.length >= MAXP;
+  $('#fNew').disabled = G.players.length >= MAXP;
+  updateSync();
+  if (fk && !gameDlg.contains(document.activeElement)) { const el = gameDlg.querySelector(`[data-fk="${CSS.escape(fk)}"]`); if (el && !el.disabled) el.focus(); }
+}
+function addPlayer(name) {
+  if (G.players.length >= MAXP) return;
+  name = String(name || '').trim().slice(0, 30);
+  const known = name && H.flatMap(e => e.players).find(p => p.n.toLowerCase() === name.toLowerCase());
+  const c = freeColor(known ? known.c : null);
+  change(() => { G.players.push({id: uid('p'), name: name || `Player ${G.players.length + 1}`, c}); });
+  const inp = $('#fNew');
+  if (inp) inp.value = '';
+  refreshDlg();
+}
+function playerAct(a, pid) {
+  const i = G.players.findIndex(p => p.id === pid);
+  if (i < 0) return;
+  if (a === 'pcolor') change(() => { G.players[i].c = nextColor(G.players[i].c); });
+  else if (a === 'pup' && i > 0) change(() => { G.players.splice(i - 1, 0, G.players.splice(i, 1)[0]); });
+  else if (a === 'pdown' && i < G.players.length - 1) change(() => { G.players.splice(i + 1, 0, G.players.splice(i, 1)[0]); });
+  else if (a === 'pdel') change(() => { G.players.splice(i, 1); for (const r of G.rows) delete r.s[pid]; });
+  refreshDlg();
+}
+function applyCats() {
+  const ta = $('#fCatList');
+  if (!ta || G.mode !== 'categories') return;
+  const lines = ta.value.split('\n').map(s => s.trim().slice(0, 40)).filter(Boolean).slice(0, 40);
+  if (lines.join('\n') === G.rows.map((r, i) => lab(r, i)).join('\n')) return;
+  change(() => {
+    const old = G.rows, used = new Set();
+    G.rows = lines.map(l => {
+      const k = old.findIndex((r, i) => !used.has(r.id) && lab(r, i).toLowerCase() === l.toLowerCase());
+      if (k >= 0) { used.add(old[k].id); old[k].label = l; return old[k]; }
+      return {id: uid('r'), label: l, s: {}};
+    });
+    if (!G.rows.length) G.rows.push({id: uid('r'), label: '', s: {}});
+  });
+}
+function openRowDlg(rid) {
+  const i = G.rows.findIndex(r => r.id === rid);
+  if (i < 0) return;
+  rowId = rid;
+  const r = G.rows[i], inp = $('#rowLabel');
+  $('#rowH').textContent = lab(r, i);
+  inp.value = r.label;
+  inp.placeholder = G.mode === 'categories' ? `Category ${i + 1}` : `Round ${i + 1}`;
+  $('#rowHint').textContent = G.mode === 'categories' ? 'Renaming keeps the scores in this row.' : 'Leave this blank to use the round number.';
+  openDlg(rowDlg);
+}
+function rowAct(a) {
+  const i = G.rows.findIndex(r => r.id === rowId);
+  rowDlg.close();
+  if (i < 0) return;
+  if (a === 'rowclear') { change(() => { G.rows[i].s = {}; }); toast('Scores cleared.', 'Undo', undo); }
+  else { change(() => { G.rows.splice(i, 1); }); toast('Row deleted.', 'Undo', undo); }
+}
+function openNewDlg() { $('#newHint').hidden = G.sample || G.done || !playedRows().length; openDlg(newDlg); }
+
+/* Saving: this browser, plus the viewer's Claude account when the page can reach it */
+function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify({g: G, h: H, tab: ui.tab})); localOK = true; } catch (e) { localOK = false; } }
+function loadLocal() { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch (e) { localOK = false; return null; } }
+function saveSoon() { saveLocal(); clearTimeout(saveTimer); saveTimer = setTimeout(() => { flush('g'); flush('h'); }, 600); }
+async function flush(k) {
+  const w = WR[k];
+  if (!cloud.ok) return;
+  if (w.busy) { w.again = true; return; }
+  w.busy = true;
+  try {
+    do {
+      w.again = false;
+      if (k === 'g' && G.sample) continue;
+      const body = JSON.stringify(k === 'g' ? G : H);
+      if (body === w.sent) continue;
+      const ref = k === 'g' ? cloud.gRef : cloud.hRef, data = k === 'g' ? {g: JSON.parse(body), by: SID, at: G.at} : {games: JSON.parse(body), by: SID, at: Date.now()};
+      let ok = false;
+      try { await ref.set(data); ok = true; }
+      catch (e) {
+        const c = e && e.code;
+        if (c === 'unavailable' || c === 'resource_exhausted') { await sleep(1500 + Math.random() * 1500); try { await ref.set(data); ok = true; } catch (e2) { /* the next change tries again */ } }
+        else if (c === 'quota_exceeded') toast('Saved games are full. Delete some past games to keep saving.');
+        else { cloud.ok = false; updateSync(); }
+      }
+      if (ok) w.sent = body;
+    } while (w.again && cloud.ok);
+  } finally { w.busy = false; }
+}
+function adopt(g) { G = g; undoStack = []; WR.g.sent = JSON.stringify(G); saveLocal(); render(); }
+function applyPending() {
+  const g = cloud.pending;
+  if (!g || pad.open || document.querySelector('dialog[open]')) return;
+  cloud.pending = null;
+  if ((g.at || 0) > (G.at || 0)) adopt(g);
+}
+function heard(s) { if (!s.metadata || !s.metadata.fromCache) { cloud.heard = true; cloud.slow = false; clearTimeout(cloud.timer); updateSync(); } }
+function cloudErr() { cloud.ok = false; updateSync(); }
+async function connect() {
+  const c = window.claude;
+  if (!c || typeof c.use !== 'function') { updateSync(); return; }
+  try {
+    const [user, db] = await Promise.all([c.use('user'), c.use('db')]);
+    const id = user ? await user.id() : null;
+    if (!db || !id) { updateSync(); return; }
+    cloud.gRef = db.doc(`data/users/${id}/game`);
+    cloud.hRef = db.doc(`data/users/${id}/history`);
+  } catch (e) { updateSync(); return; }
+  cloud.ok = true;
+  updateSync();
+  cloud.timer = setTimeout(() => { if (!cloud.heard) { cloud.slow = true; updateSync(); } }, 10000);
+  cloud.gRef.onSnapshot(s => {
+    heard(s);
+    const d = s.exists ? s.data() : null, fin = !(s.metadata && s.metadata.fromCache);
+    if (d && d.by !== SID) {
+      const g = normalize(d.g);
+      if (g && (G.sample || (isNum(d.at) && d.at > (G.at || 0)))) { if (pad.open || document.querySelector('dialog[open]')) cloud.pending = g; else adopt(g); }
+    }
+    if (fin && !cloud.gSeeded) { cloud.gSeeded = true; if (!G.sample && (!d || !isNum(d.at) || d.at < G.at)) setTimeout(() => flush('g'), 0); }
+  }, cloudErr);
+  cloud.hRef.onSnapshot(s => {
+    heard(s);
+    const d = s.exists ? s.data() : null, fin = !(s.metadata && s.metadata.fromCache);
+    if (d && d.by === SID) return;
+    const remote = d ? normH(d.games) : [];
+    if (!cloud.hMerged) {
+      if (!fin) { if (d) { H = remote; saveLocal(); render(); } return; }
+      cloud.hMerged = true;
+      const ids = new Set(remote.map(e => e.id)), extra = H.filter(e => !ids.has(e.id));
+      H = [...extra, ...remote].sort((a, b) => b.at - a.at).slice(0, 100);
+      WR.h.sent = JSON.stringify(remote);
+      if (extra.length) setTimeout(() => flush('h'), 0);
+    } else if (d) { H = remote; WR.h.sent = JSON.stringify(H); }
+    else return;
+    saveLocal();
+    render();
+  }, cloudErr);
+}
+
+/* Events */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  const a = b.dataset.act;
+  if (pad.open && !['cell', 'tpad', 'undo', 'tab'].includes(a)) commitPad();
+  switch (a) {
+    case 'cell': openPad(b.dataset.r, b.dataset.p, 'set'); break;
+    case 'row': openRowDlg(b.dataset.r); break;
+    case 'tinc': tallyAdd(b.dataset.p, +b.dataset.d); break;
+    case 'tpad': tallyPad(b.dataset.p); break;
+    case 'addround': addRound(); break;
+    case 'finish': finish(); break;
+    case 'rematch': if (newDlg.open) newDlg.close(); rematch(); break;
+    case 'fresh': if (newDlg.open) newDlg.close(); freshGame(); break;
+    case 'settings': openGameDlg(); break;
+    case 'new': openNewDlg(); break;
+    case 'undo': undo(); break;
+    case 'copy': copyResults(b); break;
+    case 'again': playAgain(b.dataset.id); break;
+    case 'hdel': delHist(b.dataset.id); break;
+    case 'tab': setTab(b.dataset.tab); break;
+    case 'close': b.closest('dialog').close(); break;
+    case 'padd': addPlayer($('#fNew').value); $('#fNew').focus(); break;
+    case 'chip': addPlayer(b.dataset.n); break;
+    case 'pcolor': case 'pup': case 'pdown': case 'pdel': playerAct(a, b.dataset.p); break;
+    case 'rowclear': case 'rowdel': rowAct(a); break;
+    case 'resume': gameDlg.close(); change(() => { G.done = false; }); break;
+  }
+});
+padEl.addEventListener('click', e => { const k = e.target.closest('[data-k]'); if (k) key(k.dataset.k); });
+tallyEl.addEventListener('change', e => { if (e.target.id === 'tallyRow' && e.target.value) { ui.tallyRow = e.target.value; render(); } });
+document.addEventListener('keydown', e => {
+  if (document.querySelector('dialog[open]')) return;
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (pad.open) {
+    const m = /^\d$/.test(k) ? k : k === '+' ? '+' : k === '-' || k === '−' ? '-' : k === '*' || k === 'x' || k === 'X' ? '*' : k === 'Backspace' ? 'back' : k === 'Delete' ? 'clear' : k === 'Enter' ? (pad.mode === 'add' ? 'done' : 'next') : k === 'Tab' ? (e.shiftKey ? 'prev' : 'next') : k === 'Escape' ? 'cancel' : null;
+    if (m) { e.preventDefault(); key(m); }
+    return;
+  }
+  const c = e.target.closest && e.target.closest('.c');
+  if (c && (/^\d$/.test(k) || k === '-')) { e.preventDefault(); openPad(c.dataset.r, c.dataset.p, 'set', k); }
+});
+gameDlg.addEventListener('focusin', e => { if (e.target.matches('#fTitle, #fTarget, .plist input')) editSnap = JSON.stringify({g: G, h: H}); });
+gameDlg.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'fTitle') { editPush(); change(() => { G.title = t.value.slice(0, 60); }, {noUndo: true}); }
+  else if (t.id === 'fTarget') { const d = t.value.replace(/\D/g, ''); if (d !== t.value) t.value = d; editPush(); change(() => { G.target = +d > 0 ? +d : null; }, {noUndo: true}); }
+  else if (t.matches('.plist input')) {
+    const p = G.players.find(x => x.id === t.dataset.p);
+    if (!p) return;
+    editPush();
+    change(() => { p.name = t.value.slice(0, 30); }, {noUndo: true});
+    const tk = t.parentElement.querySelector('.tok');
+    if (tk) tk.textContent = initial(pname(p));
+  }
+});
+gameDlg.addEventListener('change', e => {
+  const t = e.target;
+  if (t.name === 'fWin') change(() => { G.low = t.value === 'low'; });
+  else if (t.name === 'fMode') { change(() => { G.mode = t.value === 'categories' ? 'categories' : 'rounds'; }); $('#fCatList').value = G.rows.map((r, i) => lab(r, i)).join('\n'); refreshDlg(); }
+  else if (t.id === 'fCatList') applyCats();
+  else if (t.id === 'fDealer') { change(() => { G.dealer = t.checked; }); refreshDlg(); }
+  else if (t.id === 'fFirst') change(() => { G.dealerStart = +t.value; });
+  else if (t.id === 'fTitle' && !t.value.trim()) { change(() => { G.title = 'Game night'; }, {noUndo: true}); t.value = G.title; }
+  else if (t.matches('.plist input') && !t.value.trim()) {
+    const i = G.players.findIndex(x => x.id === t.dataset.p);
+    if (i >= 0) { change(() => { G.players[i].name = `Player ${i + 1}`; }, {noUndo: true}); t.value = G.players[i].name; }
+  }
+});
+gameDlg.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'fNew') { e.preventDefault(); addPlayer(e.target.value); } });
+rowDlg.addEventListener('focusin', e => { if (e.target.id === 'rowLabel') editSnap = JSON.stringify({g: G, h: H}); });
+rowDlg.addEventListener('input', e => {
+  if (e.target.id !== 'rowLabel') return;
+  const r = G.rows.find(x => x.id === rowId);
+  if (!r) return;
+  editPush();
+  change(() => { r.label = e.target.value.slice(0, 40); }, {noUndo: true});
+  $('#rowH').textContent = lab(r, G.rows.indexOf(r));
+});
+rowDlg.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'rowLabel') { e.preventDefault(); rowDlg.close(); } });
+gameDlg.addEventListener('close', () => { applyCats(); editSnap = null; render(); applyPending(); });
+rowDlg.addEventListener('close', () => {
+  const r = G.rows.find(x => x.id === rowId);
+  if (r && r.label !== r.label.trim()) change(() => { r.label = r.label.trim(); }, {noUndo: true});
+  editSnap = null;
+  applyPending();
+});
+newDlg.addEventListener('close', applyPending);
+copyDlg.addEventListener('close', applyPending);
+for (const d of [gameDlg, rowDlg, newDlg, copyDlg]) d.addEventListener('click', e => { if (e.target === d) d.close(); });
+wide.addEventListener('change', () => { if (wide.matches && ui.tab === 'history') { ui.tab = 'sheet'; render(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { clearTimeout(saveTimer); flush('g'); flush('h'); } });
+
+/* Start */
+function start(d) {
+  const src = d && d.g ? d : loadLocal();
+  G = (src && normalize(src.g)) || sampleGame();
+  H = src ? normH(src.h) : [];
+  ui.tab = src && ['sheet', 'tally', 'history'].includes(src.tab) ? src.tab : 'sheet';
+  if (wide.matches && ui.tab === 'history') ui.tab = 'sheet';
+  render();
+  connect();
+}
+if (window.claude && window.claude.hot && typeof window.claude.hot.snapshot === 'function') window.claude.hot.snapshot(() => ({g: G, h: H, tab: ui.tab}));
+if (window.claude && window.claude.hot && typeof window.claude.hot.ready === 'function') window.claude.hot.ready(start);
+else start((window.claude && window.claude.hot && window.claude.hot.data) || {});
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+}
+</script>
+</body>
+</html>
