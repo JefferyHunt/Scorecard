@@ -239,6 +239,39 @@ textarea.inp{min-height:132px;line-height:1.4;resize:vertical}
 .choice b{display:block;font:700 22px/1.2 var(--num)}
 .choice span{display:block;margin-top:2px;color:var(--mut)}
 
+.plist .mem{grid-column:2/-1}
+.negbox{display:flex;align-items:center;gap:8px}
+.negbox>span{font:700 24px/1 var(--num)}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.trio label{display:grid;gap:4px;font-size:14px;color:var(--mut)}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5em,1fr));gap:8px}
+.opt{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);font-weight:600;text-align:left}
+.opt>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opt[aria-pressed=true],.took button.on{border-color:var(--acc);box-shadow:inset 0 0 0 1.5px var(--acc)}
+.bidgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:8px}
+.bidgrid button{min-height:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);font:600 22px/1 var(--num);font-variant-numeric:tabular-nums}
+.bidgrid button[aria-pressed=true]{border-color:var(--acc);background:var(--acc);color:var(--acc-ink)}
+.hsum{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin:8px 0 4px}
+.hsum p{display:flex;align-items:center;gap:10px;margin:0;font-size:17px}
+.took{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px}
+.took button{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;width:100%;min-height:58px;padding:6px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);text-align:left}
+.took b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.took small{display:block;font:500 13px/1.3 var(--txt);color:var(--mut)}
+.tv{font:700 30px/1 var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tv.ph{color:var(--mut)}
+.tr{min-width:4.6em;text-align:right;font:700 20px/1.1 var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tr.set{color:var(--acc)}
+.hwarn{margin:0 0 8px;font-size:14px;color:var(--acc)}
+.keys.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.keys.k4 .zero,.keys.k4 .nx{grid-column:span 2}
+.keys.k4 .nx{background:var(--bg);border-color:var(--line);color:var(--ink)}
+.keys.k4 .nx:active{background:var(--line);filter:none}
+.btn.wide{width:100%;margin-top:12px}
+.rl.bid{flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}
+.rn{display:flex;align-items:center;gap:8px}
+.bp{padding:3px 6px;border-radius:6px;background:var(--pc);font:700 13px/1 var(--txt);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bp.set{background:none;box-shadow:inset 0 0 0 1.5px var(--pc);color:var(--acc)!important;text-decoration:line-through}
+
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));z-index:30;transform:translateX(-50%);display:flex;align-items:center;gap:8px;width:max-content;max-width:calc(100% - 32px);padding:8px 8px 8px 16px;border-radius:12px;background:var(--ink);color:var(--bg);font-weight:500}
 .toast button{min-height:40px;padding:0 10px;border:0;background:none;color:var(--bg);font-weight:700;text-decoration:underline}
 
@@ -344,17 +377,26 @@ textarea.inp{min-height:132px;line-height:1.4;resize:vertical}
   <div class="dlg-h"><h2 id="copyH">Copy results</h2><button type="button" class="btn sm pri" data-act="close">Done</button></div>
   <div class="dlg"><p class="hint">This browser blocked automatic copying. Select the text and copy it.</p><textarea class="inp" id="copyTxt" rows="9" readonly></textarea></div>
 </dialog>
+<dialog id="handDlg" aria-labelledby="handH">
+  <div class="dlg-h"><h2 id="handH">Round</h2><button type="button" class="ib" data-act="close" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+  <div class="dlg" id="handBody"></div>
+</dialog>
 
 <script>
 {
 const $ = s => document.querySelector(s);
 const app = $('#app'), sheetEl = $('#sheet'), tallyEl = $('#tally'), statusEl = $('#status'), actsEl = $('#acts'), padEl = $('#pad'), mainEl = $('#main'), fig = $('#fig'), chart = $('#chart');
-const gameDlg = $('#gameDlg'), rowDlg = $('#rowDlg'), newDlg = $('#newDlg'), copyDlg = $('#copyDlg');
+const gameDlg = $('#gameDlg'), rowDlg = $('#rowDlg'), newDlg = $('#newDlg'), copyDlg = $('#copyDlg'), handDlg = $('#handDlg');
 const COLORS = [['#e03131', '#fff'], ['#1971c2', '#fff'], ['#f2b705', '#16171b'], ['#2b9348', '#fff'], ['#7048e8', '#fff'], ['#e8590c', '#fff'], ['#0c8599', '#fff'], ['#d6336c', '#fff'], ['#8d5a2b', '#fff'], ['#5c677d', '#fff']];
 const KEY = 'game-scorecard-v1', SID = Math.random().toString(36).slice(2, 10), MAXP = 12;
 const wide = matchMedia('(min-width: 900px)');
 const uid = p => p + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
 const isNum = v => typeof v === 'number' && isFinite(v);
+const posInt = v => isNum(v) && v > 0 ? Math.round(v) : null;
+const negInt = v => isNum(v) && v < 0 ? Math.round(v) : null;
+const splitNames = v => String(v || '').split(',').map(x => x.trim().slice(0, 30)).filter(Boolean).slice(0, 6);
+const SETTINGS = ['low', 'target', 'floor', 'mode', 'dealer', 'teams', 'perRound', 'bids', 'bidMin', 'bidMax', 'bidStep', 'bidScore', 'setScore', 'bidOut'];
+const settingsOf = o => Object.fromEntries(SETTINGS.map(k => [k, o[k]]));
 const esc = v => String(v).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
 const fmt = n => (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-US');
 const pts = n => Math.abs(n) === 1 ? 'point' : 'points';
@@ -368,6 +410,7 @@ const icon = (id, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use hre
 let G = null, H = [], undoStack = [], editSnap = null, celebrateUntil = 0, localOK = true, rowId = null, toastTimer = 0, saveTimer = 0, lastStatus = '';
 const ui = {tab: 'sheet', tallyRow: null};
 const pad = {open: false, mode: 'set', r: null, p: null, x: '', fresh: false};
+const hand = {rid: null, ri: 0, bidder: null, bid: null, took: {}, man: [], autoP: null, active: null, x: '', fresh: false, step: 1};
 const cloud = {ok: false, heard: false, slow: false, gRef: null, hRef: null, pending: null, timer: 0, gSeeded: false, hMerged: false};
 const WR = {g: {busy: false, again: false, sent: ''}, h: {busy: false, again: false, sent: ''}};
 
@@ -377,10 +420,12 @@ function makeGame(o = {}) {
   const cats = mode === 'categories' && Array.isArray(o.cats) ? o.cats.filter(Boolean) : [];
   return {
     v: 1, id: uid('g'), title: o.title || 'Game night',
-    players: (o.players || []).slice(0, MAXP).map((p, i) => ({id: uid('p'), name: p.name || `Player ${i + 1}`, c: isNum(p.c) ? p.c : i})),
+    players: (o.players || []).slice(0, MAXP).map((p, i) => ({id: uid('p'), name: p.name || `Player ${i + 1}`, c: isNum(p.c) ? p.c : i, m: Array.isArray(p.m) ? p.m.slice(0, 6) : []})),
     rows: cats.length ? cats.map(l => ({id: uid('r'), label: l, s: {}})) : [{id: uid('r'), label: '', s: {}}],
-    mode, low: !!o.low, target: isNum(o.target) && o.target > 0 ? o.target : null,
+    mode, low: !!o.low, target: posInt(o.target), floor: negInt(o.floor), teams: !!o.teams, perRound: posInt(o.perRound),
     dealer: !!o.dealer, dealerStart: isNum(o.dealerStart) ? o.dealerStart : 0,
+    bids: !!o.bids, bidMin: isNum(o.bidMin) ? o.bidMin : null, bidMax: isNum(o.bidMax) ? o.bidMax : null, bidStep: isNum(o.bidStep) ? o.bidStep : null,
+    bidScore: o.bidScore === 'bid' ? 'bid' : 'took', setScore: o.setScore === 'zero' ? 'zero' : 'lose', bidOut: !!o.bidOut,
     done: false, doneAt: 0, at: Date.now(), sample: !!o.sample
   };
 }
@@ -396,26 +441,43 @@ function sampleGame() {
 }
 function normalize(g) {
   if (!g || typeof g !== 'object' || !Array.isArray(g.players) || !Array.isArray(g.rows)) return null;
-  const players = g.players.filter(p => p && typeof p.id === 'string').slice(0, MAXP).map((p, i) => ({id: p.id.slice(0, 40), name: String(p.name ?? '').slice(0, 30), c: isNum(p.c) ? Math.round(p.c) : i}));
+  const players = g.players.filter(p => p && typeof p.id === 'string').slice(0, MAXP).map((p, i) => ({id: p.id.slice(0, 40), name: String(p.name ?? '').slice(0, 30), c: isNum(p.c) ? Math.round(p.c) : i, m: Array.isArray(p.m) ? p.m.map(x => String(x).trim().slice(0, 30)).filter(Boolean).slice(0, 6) : []}));
   const ids = new Set(players.map(p => p.id));
+  const nums = o => { const s = {}; if (o && typeof o === 'object') for (const k of Object.keys(o)) if (ids.has(k) && isNum(o[k])) s[k] = Math.round(o[k]); return s; };
   const rows = g.rows.filter(r => r && typeof r.id === 'string').slice(0, 300).map(r => {
-    const s = {};
-    if (r.s && typeof r.s === 'object') for (const k of Object.keys(r.s)) if (ids.has(k) && isNum(r.s[k])) s[k] = Math.round(r.s[k]);
-    return {id: r.id.slice(0, 40), label: String(r.label ?? '').slice(0, 40), s};
+    const row = {id: r.id.slice(0, 40), label: String(r.label ?? '').slice(0, 40), s: nums(r.s)};
+    if (r.b && typeof r.b === 'object' && ids.has(r.b.p) && isNum(r.b.v)) { row.b = {p: r.b.p, v: Math.round(r.b.v)}; row.t = nums(r.t); }
+    return row;
   });
-  return {
+  const whole = (v, lo) => isNum(v) && v >= lo ? Math.round(v) : null;
+  return scoreRows({
     v: 1, id: typeof g.id === 'string' ? g.id.slice(0, 40) : uid('g'), title: String(g.title ?? '').slice(0, 60) || 'Game night', players, rows,
-    mode: g.mode === 'categories' ? 'categories' : 'rounds', low: !!g.low, target: isNum(g.target) && g.target > 0 ? Math.round(g.target) : null,
+    mode: g.mode === 'categories' ? 'categories' : 'rounds', low: !!g.low, target: posInt(g.target), floor: negInt(g.floor), teams: !!g.teams, perRound: posInt(g.perRound),
     dealer: !!g.dealer, dealerStart: isNum(g.dealerStart) ? Math.max(0, Math.round(g.dealerStart)) : 0,
+    bids: !!g.bids, bidMin: whole(g.bidMin, 0), bidMax: whole(g.bidMax, 0), bidStep: whole(g.bidStep, 1),
+    bidScore: g.bidScore === 'bid' ? 'bid' : 'took', setScore: g.setScore === 'zero' ? 'zero' : 'lose', bidOut: !!g.bidOut,
     done: !!g.done, doneAt: isNum(g.doneAt) ? g.doneAt : 0, at: isNum(g.at) ? g.at : 0, sample: !!g.sample
-  };
+  });
 }
+function handScores(g, b, took) {
+  const s = {};
+  for (const p of g.players) {
+    const v = took[p.id];
+    if (!isNum(v)) continue;
+    s[p.id] = p.id !== b.p ? v : v >= b.v ? (g.bidScore === 'bid' ? b.v : v) : (g.setScore === 'zero' ? 0 : -b.v);
+  }
+  return s;
+}
+function scoreRows(g) { for (const r of g.rows) if (r.b) r.s = handScores(g, r.b, r.t || {}); return g; }
 function normH(h) {
   return (Array.isArray(h) ? h : []).filter(e => e && typeof e.id === 'string' && Array.isArray(e.players)).slice(0, 100).map(e => ({
     id: e.id.slice(0, 40), title: String(e.title ?? 'Game').slice(0, 60), at: isNum(e.at) ? e.at : 0, low: !!e.low,
     target: isNum(e.target) ? e.target : null, mode: e.mode === 'categories' ? 'categories' : 'rounds', dealer: !!e.dealer,
+    floor: negInt(e.floor), teams: !!e.teams, perRound: posInt(e.perRound), bids: !!e.bids,
+    bidMin: isNum(e.bidMin) ? e.bidMin : null, bidMax: isNum(e.bidMax) ? e.bidMax : null, bidStep: isNum(e.bidStep) ? e.bidStep : null,
+    bidScore: e.bidScore === 'bid' ? 'bid' : 'took', setScore: e.setScore === 'zero' ? 'zero' : 'lose', bidOut: !!e.bidOut,
     cats: Array.isArray(e.cats) ? e.cats.map(x => String(x).slice(0, 40)).slice(0, 40) : [], rounds: isNum(e.rounds) ? e.rounds : 0,
-    players: e.players.slice(0, MAXP).map(p => ({n: String((p && p.n) || '').slice(0, 30), c: p && isNum(p.c) ? p.c : 0, t: p && isNum(p.t) ? p.t : 0})),
+    players: e.players.slice(0, MAXP).map(p => ({n: String((p && p.n) || '').slice(0, 30), c: p && isNum(p.c) ? p.c : 0, t: p && isNum(p.t) ? p.t : 0, m: p && Array.isArray(p.m) ? p.m.map(x => String(x).slice(0, 30)).slice(0, 6) : []})),
     win: Array.isArray(e.win) ? e.win.map(x => String(x).slice(0, 30)) : []
   }));
 }
@@ -427,7 +489,9 @@ function cellVal(r, pid) {
   if (!pad.open || pad.r !== r.id || pad.p !== pid) return v;
   const x = evalX(pad.x);
   if (pad.mode === 'set') return x === null ? undefined : x;
-  return x === null ? v : (isNum(v) ? v : 0) + x;
+  if (x === null) return v;
+  if (r.b) { const t = {...(r.t || {})}; t[pid] = (isNum(t[pid]) ? t[pid] : 0) + x; return handScores(G, r.b, t)[pid]; }
+  return (isNum(v) ? v : 0) + x;
 }
 function totals() {
   const t = {};
@@ -439,8 +503,29 @@ const bestOf = vals => G.low ? Math.min(...vals) : Math.max(...vals);
 function leadersOf(t) { if (!G.players.length) return []; const b = bestOf(G.players.map(p => t[p.id])); return G.players.filter(p => t[p.id] === b); }
 const curRow = () => { const i = G.rows.findIndex(r => G.players.some(p => !isNum(r.s[p.id]))); return i < 0 ? G.rows.length : i; };
 function nextCell() { const r = G.rows[curRow()]; if (!r) return null; const p = G.players.find(q => !isNum(r.s[q.id])); return p ? {r: r.id, p: p.id} : null; }
-const isOver = t => G.target != null && G.players.some(p => t[p.id] >= G.target);
-const dealerAt = i => { const n = G.players.length; return n ? G.players[((G.dealerStart + i) % n + n) % n] : null; };
+function outcome(t) {
+  const P = G.players, hit = G.target != null ? P.filter(p => t[p.id] >= G.target) : [], out = G.floor != null ? P.filter(p => t[p.id] <= G.floor) : [];
+  const over = P.length > 0 && anyScore() && (hit.length > 0 || out.length > 0);
+  let pool = P.filter(p => !out.includes(p)), winners = null;
+  if (!pool.length) pool = P;
+  if (over && hit.length && G.bids && G.bidOut) {
+    const last = [...G.rows].reverse().find(r => P.some(p => isNum(r.s[p.id])));
+    const bp = last && last.b ? P.find(p => p.id === last.b.p) : null;
+    if (bp && hit.includes(bp) && pool.includes(bp)) winners = [bp];
+  }
+  if (!winners && pool.length) { const b = bestOf(pool.map(p => t[p.id])); winners = pool.filter(p => t[p.id] === b); }
+  return {over, winners: winners || [], hit, out};
+}
+const topOf = t => { if (!G.players.length || !anyScore()) return []; const o = outcome(t); return G.done || o.over ? o.winners : leadersOf(t); };
+function seats() {
+  const P = G.players;
+  if (!G.teams || !P.some(p => p.m.length)) return P.map(p => ({name: pname(p), p}));
+  const out = [], most = Math.max(...P.map(p => p.m.length || 1));
+  for (let k = 0; k < most; k++) for (const p of P) { const nm = p.m.length ? p.m[k] : k === 0 ? pname(p) : null; if (nm) out.push({name: nm, p}); }
+  return out;
+}
+const dealerAt = i => { const s = seats(), n = s.length; return n ? s[((G.dealerStart + i) % n + n) % n] : null; };
+const bidRowLike = r => G.bids && G.mode === 'rounds' && (!!r.b || !G.players.some(p => isNum(r.s[p.id])));
 const playedRows = () => G.rows.filter(r => G.players.some(p => isNum(r.s[p.id])));
 const ranked = t => [...G.players].sort((a, b) => G.low ? t[a.id] - t[b.id] : t[b.id] - t[a.id]);
 function series() {
@@ -497,12 +582,12 @@ function render() {
 }
 
 function renderStatus(t) {
-  const n = G.players.length, any = n && anyScore(), over = any && isOver(t);
+  const n = G.players.length, any = n && anyScore(), o = any ? outcome(t) : {over: false, winners: [], hit: [], out: []}, over = o.over;
   let main, sub = '', L = [];
   if (!n) main = 'Add players to start scoring.';
   else if (!any) main = G.mode === 'categories' ? 'Ready to score.' : 'Ready for round 1.';
   else {
-    L = leadersOf(t);
+    L = G.done || over ? o.winners : leadersOf(t);
     const b = t[L[0].id], names = L.length < 3 ? andList(L.map(pname)) : `${L.length} players`;
     if (G.done || over) main = L.length === 1 ? `${pname(L[0])} wins with ${fmt(b)} ${pts(b)}` : `${names} tie for the win at ${fmt(b)}`;
     else if (n === 1) main = `${pname(L[0])} has ${fmt(b)} ${pts(b)}`;
@@ -513,11 +598,15 @@ function renderStatus(t) {
   else if (n) {
     const parts = [G.low ? 'Lowest total wins.' : 'Highest total wins.'];
     if (G.target) parts.push(`The game ends at ${fmt(G.target)}.`);
+    if (G.floor != null) parts.push(`A score of ${fmt(G.floor)} loses.`);
     if (G.done) { const k = playedRows().length; parts.push(G.mode === 'rounds' ? `Final scores after ${k} ${k === 1 ? 'round' : 'rounds'}.` : 'Final scores.'); }
-    else if (over) parts.push(`${andList(G.players.filter(p => t[p.id] >= G.target).map(pname))} reached ${fmt(G.target)}. Finish the game to save the result.`);
-    else if (G.mode === 'rounds') {
+    else if (over) {
+      if (o.hit.length) parts.push(`${andList(o.hit.map(pname))} reached ${fmt(G.target)}.`);
+      if (o.out.length) parts.push(`${andList(o.out.map(pname))} reached ${fmt(G.floor)}.`);
+      parts.push('Finish the game to save the result.');
+    } else if (G.mode === 'rounds') {
       const i = curRow(), d = G.dealer ? dealerAt(i) : null, part = G.rows[i] && G.players.some(p => isNum(G.rows[i].s[p.id]));
-      parts.push(d ? `${pname(d)} deals round ${i + 1}.` : `Round ${i + 1} is ${part ? 'in progress' : 'next'}.`);
+      parts.push(d ? `${d.name} deals round ${i + 1}.` : `Round ${i + 1} is ${part ? 'in progress' : 'next'}.`);
     } else parts.push(`${G.rows.filter(r => G.players.every(p => isNum(r.s[p.id]))).length} of ${G.rows.length} categories scored.`);
     sub = parts.join(' ');
   }
@@ -531,15 +620,15 @@ function renderSheet(t) {
   const n = G.players.length;
   if (!n) { sheetEl.innerHTML = emptyHTML(); return; }
   const cat = G.mode === 'categories', labW = cat ? 104 : G.rows.some(r => r.label) ? 96 : 66, any = anyScore();
-  const L = new Set(any ? leadersOf(t).map(p => p.id) : []);
-  const ci = curRow(), dIdx = G.dealer && !cat && !G.done ? ((G.dealerStart + ci) % n + n) % n : -1;
+  const L = new Set(topOf(t).map(p => p.id));
+  const ci = curRow(), dl = G.dealer && !cat && !G.done ? dealerAt(ci) : null;
   const nx = !G.done && !pad.open ? nextCell() : null;
   const vals = G.players.map(p => t[p.id]), lo = Math.min(0, ...vals), hi = Math.max(...vals);
   const pct = v => G.target ? Math.max(0, Math.min(1, v / G.target)) : hi > lo ? (v - lo) / (hi - lo) : 0;
   const pop = G.done && Date.now() < celebrateUntil, sz = s => s.length >= 5 ? ' s' : s.length === 4 ? ' m' : '';
   const head = G.players.map((p, i) => {
-    const lead = L.has(p.id), x = (lead ? icon('i-crown', 'crown') : '') + (i === dIdx ? `<span class="dl">${icon('i-cards', '')}</span>` : '');
-    const note = (lead ? (G.done ? ', winner' : ', leading') : '') + (i === dIdx ? ', deals this round' : '');
+    const deals = dl && dl.p === p, lead = L.has(p.id), x = (lead ? icon('i-crown', 'crown') : '') + (deals ? `<span class="dl">${icon('i-cards', '')}</span>` : '');
+    const note = (lead ? (G.done ? ', winner' : ', leading') : '') + (deals ? `, ${esc(dl.name)} deals this round` : '');
     return `<th scope="col" class="ph${lead ? ' lead' : ''}${lead && pop ? ' won' : ''}" style="--pc:${col(p.c)[0]}">${tokHTML(p, '', x)}<span class="pn">${esc(pname(p))}</span><span class="pt${sz(fmt(t[p.id]))}">${fmt(t[p.id])}</span><span class="meter"><i style="width:${(pct(t[p.id]) * 100).toFixed(1)}%"></i></span>${note ? `<span class="vh">${note}</span>` : ''}</th>`;
   }).join('');
   const body = G.rows.map((r, ri) => {
@@ -550,8 +639,11 @@ function renderSheet(t) {
       const cls = 'c' + (has ? sz(fmt(v)) : '') + (on ? ' on' : '') + (nx && nx.r === r.id && nx.p === p.id ? ' next' : '') + (has && v < 0 ? ' neg' : '') + (best !== null && v === best ? ' top' : '');
       return `<td><button type="button" class="${cls}" style="--pc:${col(p.c)[0]}" data-act="cell" data-r="${r.id}" data-p="${p.id}" data-fk="c:${r.id}:${p.id}" aria-label="${esc(pname(p))}, ${esc(lb)}: ${has ? fmt(v) : 'no score'}">${has ? fmt(v) : ''}</button></td>`;
     }).join('');
-    const rl = cat || r.label ? `<span class="rt">${esc(lb)}</span>` : String(ri + 1);
-    return `<tr${ri === ci && !G.done ? ' class="cur"' : ''}><th scope="row" class="lab"><button type="button" class="rl" data-act="row" data-r="${r.id}" data-fk="r:${r.id}" aria-label="${esc(lb)}${d ? `, ${esc(pname(d))} deals` : ''}. Edit row">${rl}${d ? `<span class="dd" style="--pc:${col(d.c)[0]}"></span>` : ''}</button></th>${cells}</tr>`;
+    const bp = r.b ? G.players.find(p => p.id === r.b.p) : null, bt = bp && r.t ? r.t[bp.id] : undefined, set = bp && isNum(bt) && bt < r.b.v;
+    const rn = (cat || r.label ? `<span class="rt">${esc(lb)}</span>` : String(ri + 1)) + (d ? `<span class="dd" style="--pc:${col(d.p.c)[0]}"></span>` : '');
+    const inner = bp ? `<span class="rn">${rn}</span><span class="bp${set ? ' set' : ''}" style="--pc:${col(bp.c)[0]};color:${col(bp.c)[1]}">${fmt(r.b.v)}</span>` : rn;
+    const note = (bp ? `, ${pname(bp)} bid ${r.b.v}${isNum(bt) ? (set ? ', set' : ', made') : ''}` : '') + (d ? `, ${d.name} deals` : '');
+    return `<tr${ri === ci && !G.done ? ' class="cur"' : ''}><th scope="row" class="lab"><button type="button" class="rl${bp ? ' bid' : ''}" data-act="row" data-r="${r.id}" data-fk="r:${r.id}" aria-label="${esc(lb + note)}. Edit row">${inner}</button></th>${cells}</tr>`;
   }).join('');
   const none = G.rows.length ? '' : `<div class="empty"><p>No rows yet.</p><button type="button" class="btn pri" data-act="${cat ? 'settings' : 'addround'}">${cat ? 'Add categories' : 'Add round'}</button></div>`;
   sheetEl.innerHTML = `<table class="grid${cat ? ' cat' : ''}" style="min-width:${labW + n * 54}px;max-width:${labW + n * 170}px"><colgroup><col style="width:${labW}px">${'<col>'.repeat(n)}</colgroup><thead><tr><th scope="col" class="lab">${cat ? 'Category' : 'Round'}</th>${head}</tr></thead><tbody>${body}</tbody></table>${none}`;
@@ -563,7 +655,7 @@ function renderSheet(t) {
 function renderTally(t) {
   if (!G.players.length) { tallyEl.innerHTML = emptyHTML(); return; }
   const rows = G.rows, r = rows.find(x => x.id === ui.tallyRow) || rows[rows.length - 1], ri = rows.indexOf(r);
-  const L = new Set(anyScore() ? leadersOf(t).map(p => p.id) : []);
+  const L = new Set(topOf(t).map(p => p.id));
   const opts = rows.length ? rows.map((x, i) => `<option value="${x.id}"${x === r ? ' selected' : ''}>${esc(lab(x, i))}</option>`).join('') : '<option value="">Round 1</option>';
   const items = G.players.map(p => {
     const v = r ? cellVal(r, p.id) : undefined, where = esc(r ? labIn(r, ri) : 'round 1'), nm = esc(pname(p));
@@ -573,7 +665,7 @@ function renderTally(t) {
 }
 
 function renderDock(t) {
-  const n = G.players.length, any = n && anyScore(), over = any && isOver(t), cat = G.mode === 'categories';
+  const n = G.players.length, any = n && anyScore(), over = any && outcome(t).over, cat = G.mode === 'categories';
   const B = (act, label, pri, ic) => `<button type="button" class="btn${pri ? ' pri' : ''}" data-act="${act}" data-fk="a:${act}"${act === 'finish' && !any ? ' disabled' : ''}>${ic ? icon(ic) : ''}${label}</button>`;
   let h;
   if (!n) h = B('settings', 'Add players', 1, 'i-plus');
@@ -630,8 +722,9 @@ function renderSide() {
     }
     let top = null;
     s.rows.forEach(({r, i}) => G.players.forEach(p => { const v = r.s[p.id]; if (isNum(v) && (!top || (G.low ? v < top.v : v > top.v))) top = {v, p, i}; }));
+    const bids = G.rows.filter(r => r.b && r.t && isNum(r.t[r.b.p])), made = bids.filter(r => r.t[r.b.p] >= r.b.v).length;
     find.textContent = f;
-    more.innerHTML = `<dl class="facts"><dt>Lead changes</dt><dd>${changes}</dd>${top ? `<dt>${G.low ? 'Lowest round' : 'Highest round'}</dt><dd>${esc(pname(top.p))}, ${fmt(top.v)} in round ${top.i + 1}</dd>` : ''}<dt>Rounds scored</dt><dd>${R}</dd></dl>`;
+    more.innerHTML = `<dl class="facts"><dt>Lead changes</dt><dd>${changes}</dd>${top ? `<dt>${G.low ? 'Lowest round' : 'Highest round'}</dt><dd>${esc(pname(top.p))}, ${fmt(top.v)} in round ${top.i + 1}</dd>` : ''}${bids.length ? `<dt>Bids made</dt><dd>${made} of ${bids.length}</dd>` : ''}<dt>Rounds scored</dt><dd>${R}</dd></dl>`;
   }
   if (!fig.hidden) drawChart();
   renderPast();
@@ -691,7 +784,7 @@ function renderPast() {
     wins.innerHTML = `<p class="find">${esc(f)}</p><div class="wl">${top.map(o => `<div class="wr"><span class="wn">${esc(o.n)}</span><span class="wb"><i style="width:${Math.round(o.w / top[0].w * 100)}%;background:${col(o.c)[0]}"></i></span><span class="wc">${o.w}</span></div>`).join('')}</div>`;
   } else wins.innerHTML = '';
   past.innerHTML = H.map(e => {
-    const ps = [...e.players].sort((a, b) => e.low ? a.t - b.t : b.t - a.t), b = ps.length ? ps[0].t : 0;
+    const ps = [...e.players].sort((a, b) => e.low ? a.t - b.t : b.t - a.t), w = e.players.find(p => p.n === e.win[0]), b = w ? w.t : ps.length ? ps[0].t : 0;
     const line = !e.win.length ? 'No winner recorded.' : e.win.length === 1 ? `${e.win[0]} won with ${fmt(b)} ${pts(b)}${e.low ? ', the lowest total' : ''}.` : `${andList(e.win)} tied at ${fmt(b)}.`;
     return `<li><div class="pg-h"><b>${esc(e.title)}</b><time datetime="${new Date(e.at).toISOString().slice(0, 10)}">${esc(dateStr(e.at))}</time></div><p class="pg-w">${esc(line)}</p><p class="pg-s">${ps.map(p => `<span>${esc(p.n)} ${fmt(p.t)}</span>`).join(', ')}</p><div class="pg-a"><button type="button" class="lnk" data-act="again" data-id="${esc(e.id)}">Play again</button><button type="button" class="lnk mut" data-act="hdel" data-id="${esc(e.id)}" aria-label="Delete ${esc(e.title)}, ${esc(dateStr(e.at))}">Delete</button></div></li>`;
   }).join('');
@@ -701,6 +794,7 @@ function renderPast() {
 function change(fn, o = {}) {
   if (!o.noUndo) { undoStack.push(JSON.stringify({g: G, h: H})); if (undoStack.length > 80) undoStack.shift(); }
   fn();
+  scoreRows(G);
   if (!o.histOnly) { G.sample = false; G.at = Date.now(); if (G.done) archive(); }
   if (!o.quiet) render();
   saveSoon();
@@ -718,9 +812,9 @@ const editPush = () => { if (editSnap) { undoStack.push(editSnap); if (undoStack
 function entry() {
   const t = totals();
   return {
-    id: G.id, title: G.title, at: G.doneAt || Date.now(), low: G.low, target: G.target, mode: G.mode, dealer: G.dealer,
+    id: G.id, title: G.title, at: G.doneAt || Date.now(), ...settingsOf(G),
     cats: G.mode === 'categories' ? G.rows.map((r, i) => lab(r, i)) : [], rounds: playedRows().length,
-    players: G.players.map(p => ({n: pname(p), c: p.c, t: t[p.id]})), win: leadersOf(t).map(pname)
+    players: G.players.map(p => ({n: pname(p), c: p.c, t: t[p.id], m: p.m})), win: topOf(t).map(pname)
   };
 }
 function archive() { const e = entry(), i = H.findIndex(x => x.id === e.id); if (i >= 0) H[i] = e; else H.unshift(e); if (H.length > 100) H.length = 100; }
@@ -729,6 +823,7 @@ function shelve() { if (G.sample || !playedRows().length) return; if (!G.done) {
 /* Actions */
 function addRound() {
   if (!G.players.length) { openGameDlg(); return; }
+  if (G.bids && G.mode === 'rounds') { openHand(null); return; }
   const last = G.rows[G.rows.length - 1];
   if (!last || last.label || G.players.some(p => isNum(last.s[p.id]))) change(() => { G.rows.push({id: uid('r'), label: '', s: {}}); });
   const r = G.rows[G.rows.length - 1];
@@ -742,18 +837,18 @@ function finish() {
   toast('Result saved to past games.');
 }
 function rematch() {
-  const old = G, n = old.players.length, played = playedRows().length;
+  const old = G, n = seats().length, played = playedRows().length;
   const cats = old.mode === 'categories' ? old.rows.map((r, i) => lab(r, i)) : null;
   change(() => {
     shelve();
-    G = makeGame({title: old.title, players: old.players.map(p => ({name: pname(p), c: p.c})), low: old.low, target: old.target, mode: old.mode, dealer: old.dealer, dealerStart: n ? (old.dealerStart + played) % n : 0, cats});
+    G = makeGame({title: old.title, players: old.players.map(p => ({name: pname(p), c: p.c, m: p.m})), ...settingsOf(old), dealerStart: n ? (old.dealerStart + played) % n : 0, cats});
   });
   if (ui.tab === 'history' && !wide.matches) { ui.tab = 'sheet'; render(); }
   toast('Rematch started.', 'Undo', undo);
 }
 function freshGame() {
   const old = G;
-  change(() => { shelve(); G = makeGame({title: 'New game', players: old.players.map(p => ({name: pname(p), c: p.c}))}); });
+  change(() => { shelve(); G = makeGame({title: 'New game', teams: old.teams, players: old.players.map(p => ({name: pname(p), c: p.c, m: p.m}))}); });
   ui.tab = 'sheet';
   render();
   openGameDlg();
@@ -763,7 +858,7 @@ function freshGame() {
 function playAgain(id) {
   const e = H.find(x => x.id === id);
   if (!e) return;
-  change(() => { shelve(); G = makeGame({title: e.title, players: e.players.map(p => ({name: p.n, c: p.c})), low: e.low, target: e.target, mode: e.mode, dealer: e.dealer, cats: e.cats}); });
+  change(() => { shelve(); G = makeGame({title: e.title, players: e.players.map(p => ({name: p.n, c: p.c, m: p.m})), ...settingsOf(e), cats: e.cats}); });
   ui.tab = 'sheet';
   render();
   toast(`New game of ${e.title} started.`, 'Undo', undo);
@@ -779,7 +874,8 @@ function tallyAdd(pid, d) {
     let r = G.rows.find(x => x.id === ui.tallyRow) || G.rows[G.rows.length - 1];
     if (!r) { r = {id: uid('r'), label: '', s: {}}; G.rows.push(r); }
     ui.tallyRow = r.id;
-    r.s[pid] = (isNum(r.s[pid]) ? r.s[pid] : 0) + d;
+    if (r.b) { r.t = r.t || {}; r.t[pid] = (isNum(r.t[pid]) ? r.t[pid] : 0) + d; }
+    else r.s[pid] = (isNum(r.s[pid]) ? r.s[pid] : 0) + d;
   });
 }
 function tallyPad(pid) {
@@ -802,7 +898,7 @@ function toast(msg, act, fn) {
 function resultsText() {
   const t = totals(), lines = [`${G.title}, ${dateStr(G.doneAt || Date.now(), true)}`, G.low ? 'Lowest total wins' : 'Highest total wins', ''];
   let rank = 0, prev = null;
-  ranked(t).forEach((p, i) => { if (t[p.id] !== prev) { rank = i + 1; prev = t[p.id]; } lines.push(`${rank}. ${pname(p)}: ${t[p.id].toLocaleString('en-US')}`); });
+  ranked(t).forEach((p, i) => { if (t[p.id] !== prev) { rank = i + 1; prev = t[p.id]; } lines.push(`${rank}. ${pname(p)}${G.teams && p.m.length ? ` (${p.m.join(', ')})` : ''}: ${t[p.id].toLocaleString('en-US')}`); });
   const k = playedRows().length;
   lines.push('', G.mode === 'categories' ? `${G.rows.length} categories` : `${k} ${k === 1 ? 'round' : 'rounds'} played`);
   return lines.join('\n');
@@ -847,8 +943,10 @@ function key(k) {
   else return;
   render();
 }
-function openPad(rid, pid, mode = 'set', first) {
+function openPad(rid, pid, mode = 'set', first, plain) {
   if (pad.open && pad.r === rid && pad.p === pid && pad.mode === mode) { if (first) key(first); return; }
+  const target = G.rows.find(z => z.id === rid);
+  if (mode === 'set' && !plain && target && bidRowLike(target)) { if (pad.open) commitPad(); openHand(rid); return; }
   applyPad();
   const r = G.rows.find(z => z.id === rid);
   if (!r) { render(); return; }
@@ -860,14 +958,23 @@ function openPad(rid, pid, mode = 'set', first) {
   requestAnimationFrame(() => { const el = $('.c.on'); if (el && ui.tab === 'sheet') el.scrollIntoView({block: 'nearest', inline: 'nearest'}); });
 }
 function applyPad() {
-  if (!pad.open) return;
+  if (!pad.open) return null;
   const {mode, r: rid, p: pid, x} = pad;
   pad.open = false;
   const r = G.rows.find(z => z.id === rid);
-  if (!r || !G.players.some(q => q.id === pid)) return;
+  if (!r || !G.players.some(q => q.id === pid)) return null;
   const v = evalX(x), old = r.s[pid];
-  if (mode === 'set') { const nv = v === null ? undefined : v; if (nv !== old) change(() => { if (nv === undefined) delete r.s[pid]; else r.s[pid] = nv; }, {quiet: true}); }
-  else if (v) change(() => { r.s[pid] = (isNum(old) ? old : 0) + v; }, {quiet: true});
+  let auto = null;
+  if (mode === 'set') { const nv = v === null ? undefined : v; if (nv !== old) change(() => { if (nv === undefined) delete r.s[pid]; else r.s[pid] = nv; auto = autoFill(r); }, {quiet: true}); }
+  else if (v) change(() => { if (r.b) { r.t = r.t || {}; r.t[pid] = (isNum(r.t[pid]) ? r.t[pid] : 0) + v; } else r.s[pid] = (isNum(old) ? old : 0) + v; }, {quiet: true});
+  return auto;
+}
+function autoFill(r) {
+  if (!G.perRound || r.b || G.mode !== 'rounds' || G.players.length < 2) return null;
+  const empty = G.players.filter(p => !isNum(r.s[p.id]));
+  if (empty.length !== 1) return null;
+  r.s[empty[0].id] = G.perRound - G.players.reduce((a, p) => a + (isNum(r.s[p.id]) ? r.s[p.id] : 0), 0);
+  return empty[0].id;
 }
 function neighbor(rid, pid, dir) {
   const n = G.players.length, ri = G.rows.findIndex(r => r.id === rid), pi = G.players.findIndex(p => p.id === pid), k = ri * n + pi + dir;
@@ -876,17 +983,138 @@ function neighbor(rid, pid, dir) {
 }
 function commitPad(dir = 0) {
   const {mode, r, p} = pad;
-  applyPad();
-  const nb = dir && mode === 'set' ? neighbor(r, p, dir) : null;
-  if (nb) openPad(nb.r, nb.p, 'set'); else closePad();
+  const auto = applyPad();
+  let nb = dir && mode === 'set' ? neighbor(r, p, dir) : null;
+  if (nb && auto && nb.r === r && nb.p === auto) nb = neighbor(nb.r, nb.p, dir);
+  const nr = nb && G.rows.find(z => z.id === nb.r);
+  if (nb && nr && !nr.b) openPad(nb.r, nb.p, 'set', undefined, true); else closePad();
 }
 function closePad() { pad.open = false; pad.r = pad.p = null; pad.x = ''; render(); applyPending(); }
+
+/* Hand entry for rounds with a bid */
+function defaultBids() {
+  const step = G.perRound && G.perRound < 50 ? 1 : 5, max = G.perRound || 200;
+  return {step, max, min: Math.min(max, Math.ceil((G.perRound ? G.perRound / 2 : 50) / step) * step)};
+}
+function bidChoices() {
+  const d = defaultBids(), step = G.bidStep || d.step, max = G.bidMax ?? d.max, min = Math.min(G.bidMin ?? d.min, max), out = [];
+  for (let v = min; v <= max && out.length < 60; v += step) out.push(v);
+  return out;
+}
+const handSides = () => hand.bidder ? [hand.bidder, ...G.players.map(p => p.id).filter(id => id !== hand.bidder)] : G.players.map(p => p.id);
+const handReady = () => !!hand.bidder && hand.bid != null && handSides().every(id => isNum(hand.took[id]));
+function handAuto() {
+  if (hand.autoP && !hand.man.includes(hand.autoP)) delete hand.took[hand.autoP];
+  hand.autoP = null;
+  if (!G.perRound || !hand.bidder) return;
+  const rest = handSides().filter(id => !hand.man.includes(id));
+  if (rest.length !== 1) return;
+  hand.took[rest[0]] = G.perRound - hand.man.reduce((a, id) => a + (isNum(hand.took[id]) ? hand.took[id] : 0), 0);
+  hand.autoP = rest[0];
+}
+function openHand(rid) {
+  let r = rid ? G.rows.find(x => x.id === rid) : null;
+  if (!r) { const last = G.rows[G.rows.length - 1]; if (last && !last.label && !last.b && !G.players.some(p => isNum(last.s[p.id]))) r = last; }
+  const has = !!(r && r.b);
+  Object.assign(hand, {rid: r ? r.id : null, ri: r ? G.rows.indexOf(r) : G.rows.length, bidder: has ? r.b.p : null, bid: has ? r.b.v : null, took: has ? {...(r.t || {})} : {}, man: [], autoP: null, active: null, x: '', fresh: false, step: has ? 2 : 1});
+  if (has) { const sides = handSides(); hand.man = sides.filter(id => isNum(hand.took[id])).slice(0, G.perRound ? sides.length - 1 : sides.length); handAuto(); setActive(hand.bidder, true); }
+  renderHand();
+  openDlg(handDlg);
+}
+function setActive(id, quiet) {
+  hand.active = id;
+  hand.x = hand.man.includes(id) && isNum(hand.took[id]) ? String(hand.took[id]) : '';
+  hand.fresh = !!hand.x;
+  if (!quiet) renderHand();
+}
+function toStep2() {
+  hand.step = 2;
+  hand.man = hand.man.filter(id => G.players.some(p => p.id === id));
+  handAuto();
+  setActive(handSides().find(id => !hand.man.includes(id) && id !== hand.autoP) || hand.bidder);
+}
+function hkey(k) {
+  if (hand.step !== 2 || !hand.active) return;
+  if (/^\d$/.test(k)) {
+    if (hand.fresh) hand.x = '';
+    hand.fresh = false;
+    const m = hand.x.match(/\d+$/);
+    if (m && m[0] === '0') hand.x = hand.x.slice(0, -1);
+    else if (m && m[0].length >= 6) return;
+    if (hand.x.length < 24) hand.x += k;
+  } else if (k === '+') { hand.fresh = false; if (/\d$/.test(hand.x) && hand.x.length < 24) hand.x += '+'; }
+  else if (k === 'back') { hand.fresh = false; hand.x = hand.x.slice(0, -1); }
+  else if (k === 'clear') { hand.fresh = false; hand.x = ''; }
+  else if (k === 'next') { handNext(); return; }
+  else return;
+  const v = evalX(hand.x), id = hand.active;
+  if (v === null) { delete hand.took[id]; hand.man = hand.man.filter(x => x !== id); }
+  else { hand.took[id] = v; if (!hand.man.includes(id)) hand.man.push(id); }
+  handAuto();
+  renderHand();
+}
+function handNext() {
+  const sides = handSides(), i = sides.indexOf(hand.active);
+  const next = sides.slice(i + 1).concat(sides.slice(0, i)).find(id => !hand.man.includes(id) && id !== hand.autoP);
+  if (next) setActive(next); else if (handReady()) saveHand();
+}
+function saveHand() {
+  if (!handReady()) return;
+  const {rid, bidder, bid} = hand, took = {};
+  for (const id of handSides()) took[id] = hand.took[id];
+  change(() => {
+    let r = rid ? G.rows.find(x => x.id === rid) : null;
+    if (!r) { r = {id: uid('r'), label: '', s: {}}; G.rows.push(r); }
+    r.b = {p: bidder, v: bid};
+    r.t = took;
+  });
+  handDlg.close();
+}
+function handPlain() {
+  const rid = hand.rid, cur = rid ? G.rows.find(x => x.id === rid) : null;
+  handDlg.close();
+  if (cur && cur.b) { change(() => { delete cur.b; delete cur.t; }); toast('Bid removed. The scores stay in the round.', 'Undo', undo); return; }
+  let r = cur;
+  if (!r) { const nr = {id: uid('r'), label: '', s: {}}; change(() => { G.rows.push(nr); }); r = nr; }
+  ui.tab = 'sheet';
+  openPad(r.id, G.players[0].id, 'set', undefined, true);
+}
+function renderHand() {
+  const a = document.activeElement, had = a && a !== handDlg && $('#handBody').contains(a) ? a.dataset : null;
+  const sel = had ? (had.hk ? `[data-hk="${had.hk}"]` : had.act ? `[data-act="${had.act}"]` + (had.p ? `[data-p="${had.p}"]` : had.v ? `[data-v="${had.v}"]` : '') : null) : null;
+  const P = G.players, ri = hand.ri, row = G.rows[ri], d = G.dealer && G.mode === 'rounds' ? dealerAt(ri) : null, bp = P.find(p => p.id === hand.bidder);
+  $('#handH').textContent = row ? lab(row, ri) : `Round ${ri + 1}`;
+  let h = d ? `<p class="hint">${esc(d.name)} deals.</p>` : '';
+  if (hand.step === 1) {
+    h += `<fieldset class="fs"><legend>Bidder</legend><div class="opts">${P.map(p => `<button type="button" class="opt" data-act="hbidder" data-p="${p.id}" aria-pressed="${p.id === hand.bidder}">${tokHTML(p)}<span>${esc(pname(p))}</span></button>`).join('')}</div></fieldset>`;
+    h += `<fieldset class="fs"><legend>Bid</legend><div class="bidgrid">${bidChoices().map(v => `<button type="button" data-act="hbid" data-v="${v}" aria-pressed="${v === hand.bid}">${fmt(v)}</button>`).join('')}</div></fieldset>`;
+    h += `<button type="button" class="lnk" data-act="hplain">${row && row.b ? 'Remove the bid from this round' : 'Score this round without a bid'}</button>`;
+  } else {
+    const base = {};
+    for (const p of P) base[p.id] = G.rows.reduce((a, r) => a + (r.id !== hand.rid && isNum(r.s[p.id]) ? r.s[p.id] : 0), 0);
+    const sc = handScores(G, {p: hand.bidder, v: hand.bid}, hand.took);
+    h += `<div class="hsum"><p>${bp ? tokHTML(bp) : ''}<span><b>${esc(bp ? pname(bp) : '')}</b> bid <b>${fmt(hand.bid)}</b></span></p><button type="button" class="lnk" data-act="hback">Change</button></div>`;
+    h += `<p class="fld" id="tookH">Points taken</p><ul class="took" aria-labelledby="tookH">${handSides().map(id => {
+      const p = P.find(q => q.id === id), v = hand.took[id], has = isNum(v), on = id === hand.active, isB = id === hand.bidder, made = isB && has && v >= hand.bid;
+      const shown = on && hand.x ? prettyX(hand.x) : has ? fmt(v) : '0';
+      const cap = id === hand.autoP ? 'Filled in' : isB ? (has ? (made ? 'Bid made' : 'Set') : 'Bidder') : '';
+      const res = isNum(sc[id]) ? `<span class="tr${isB && !made ? ' set' : ''}">${sc[id] >= 0 ? '+' : ''}${fmt(sc[id])}<small>Total ${fmt(base[id] + sc[id])}</small></span>` : '<span class="tr"></span>';
+      return `<li><button type="button" class="${on ? 'on' : ''}" data-act="hside" data-p="${id}" aria-pressed="${on}">${tokHTML(p)}<span><b>${esc(pname(p))}</b><small>${cap}</small></span><span class="tv${has || (on && hand.x) ? '' : ' ph'}">${shown}</span>${res}</button></li>`;
+    }).join('')}</ul>`;
+    if (G.perRound && handReady()) { const sum = handSides().reduce((a, id) => a + hand.took[id], 0); if (sum !== G.perRound) h += `<p class="hwarn">These add up to ${fmt(sum)}. Each round has ${fmt(G.perRound)}.</p>`; }
+    const kb = k => `<button type="button" data-hk="${k}">${k}</button>`;
+    h += `<div class="keys k4">${['7', '8', '9'].map(kb).join('')}<button type="button" class="op" data-hk="back" aria-label="Delete last digit">${icon('i-back')}</button>${['4', '5', '6'].map(kb).join('')}<button type="button" class="op" data-hk="+" aria-label="Plus">+</button>${['1', '2', '3'].map(kb).join('')}<button type="button" class="op tx" data-hk="clear">Clear</button><button type="button" class="zero" data-hk="0">0</button><button type="button" class="nx tx" data-hk="next">Next${icon('i-next')}</button></div>`;
+    h += `<button type="button" class="btn pri wide" data-act="hsave"${handReady() ? '' : ' disabled'}>Save round</button>`;
+  }
+  $('#handBody').innerHTML = h;
+  if (had) { const el = (sel && $('#handBody').querySelector(sel)) || $('#handBody .took button.on') || $('#handBody button'); if (el) el.focus({preventScroll: true}); }
+}
 
 /* Dialogs */
 function openDlg(d) { if (pad.open) commitPad(); if (!d.open) d.showModal(); }
 function syncText() {
-  if (cloud.ok) return cloud.heard ? 'Games save to your Claude account, so they follow you to your other devices.' : cloud.slow ? 'Your account can’t be reached right now. Changes are saved in this browser.' : 'Connecting to your Claude account.';
-  return localOK ? '' : 'This device isn’t saving games.';
+  if (cloud.ok && cloud.slow && !cloud.heard) return 'Your Claude account can’t be reached. Games are saving in this browser.';
+  return cloud.ok || localOK ? '' : 'This device isn’t saving games.';
 }
 const updateSync = () => { const el = $('#syncNote'); if (el) { el.textContent = syncText(); el.hidden = !el.textContent; } };
 function recentNames() {
@@ -909,19 +1137,38 @@ function openGameDlg() {
   $('#gameBody').innerHTML = `
   <label class="fld" for="fTitle">Game name</label>
   <input class="inp" id="fTitle" maxlength="60" autocomplete="off" value="${esc(G.title)}">
-  <h3>Players</h3>
+  <h3 id="pHead">Players</h3>
+  <label class="chk"><input type="checkbox" id="fTeams"${G.teams ? ' checked' : ''}>Play in teams</label>
   <ul class="plist" id="plist"></ul>
-  <div class="addp"><label class="vh" for="fNew">New player name</label><input class="inp" id="fNew" maxlength="30" placeholder="Player name" autocomplete="off" enterkeyhint="done"><button type="button" class="btn" id="addBtn" data-act="padd">${icon('i-plus')}Add</button></div>
+  <div class="addp"><label class="vh" for="fNew" id="fNewL">New player name</label><input class="inp" id="fNew" maxlength="30" placeholder="Player name" autocomplete="off" enterkeyhint="done"><button type="button" class="btn" id="addBtn" data-act="padd">${icon('i-plus')}Add</button></div>
   <div class="chips" id="chips"></div>
-  <h3>Scoring</h3>
+  <h3>Winning</h3>
   <fieldset class="fs"><legend>Winner</legend><div class="seg"><input type="radio" name="fWin" id="fHigh" value="high"${G.low ? '' : ' checked'}><label for="fHigh">Highest total</label><input type="radio" name="fWin" id="fLow" value="low"${G.low ? ' checked' : ''}><label for="fLow">Lowest total</label></div></fieldset>
   <label class="fld" for="fTarget">Target score</label>
   <input class="inp short" id="fTarget" inputmode="numeric" maxlength="7" placeholder="None" autocomplete="off" value="${G.target ?? ''}">
-  <p class="hint">Optional. The game ends when any player reaches this total.</p>
+  <p class="hint">Optional. The game ends when any score reaches this total.</p>
+  <label class="fld" for="fFloor">Losing score</label>
+  <div class="negbox"><span aria-hidden="true">−</span><input class="inp short" id="fFloor" inputmode="numeric" maxlength="6" placeholder="None" autocomplete="off" aria-describedby="floorHint" value="${G.floor != null ? -G.floor : ''}"></div>
+  <p class="hint" id="floorHint">Optional. A player or team at or below this score loses.</p>
+  <h3>Rounds</h3>
   <fieldset class="fs"><legend>Rows</legend><div class="seg"><input type="radio" name="fMode" id="fRounds" value="rounds"${G.mode === 'rounds' ? ' checked' : ''}><label for="fRounds">Rounds</label><input type="radio" name="fMode" id="fCats" value="categories"${G.mode === 'categories' ? ' checked' : ''}><label for="fCats">Categories</label></div></fieldset>
   <p class="hint" id="modeHint"></p>
   <div id="catBox"><label class="fld" for="fCatList">Categories, one per line</label><textarea class="inp" id="fCatList" rows="6" placeholder="Routes&#10;Sets&#10;Bonus cards"></textarea></div>
-  <div id="dealerBox"><label class="chk"><input type="checkbox" id="fDealer"${G.dealer ? ' checked' : ''}>Rotate the dealer each round</label><div id="firstBox"><label class="fld" for="fFirst">First dealer</label><select class="inp" id="fFirst"></select></div></div>
+  <div id="roundBox">
+  <label class="fld" for="fPer">Points per round</label>
+  <input class="inp short" id="fPer" inputmode="numeric" maxlength="6" placeholder="Any" autocomplete="off" value="${G.perRound ?? ''}">
+  <p class="hint">Optional. Fills in the last score of each round.</p>
+  <label class="chk"><input type="checkbox" id="fDealer"${G.dealer ? ' checked' : ''}>Rotate the dealer each round</label><div id="firstBox"><label class="fld" for="fFirst">First dealer</label><select class="inp" id="fFirst"></select></div>
+  <h3>Bidding</h3>
+  <label class="chk"><input type="checkbox" id="fBids"${G.bids ? ' checked' : ''}>Track a bid each round</label>
+  <div id="bidBox">
+  <fieldset class="fs"><legend>Bids</legend><div class="trio"><label>From<input class="inp" id="fBidMin" inputmode="numeric" maxlength="6" autocomplete="off"></label><label>To<input class="inp" id="fBidMax" inputmode="numeric" maxlength="6" autocomplete="off"></label><label>Step<input class="inp" id="fBidStep" inputmode="numeric" maxlength="4" autocomplete="off"></label></div></fieldset>
+  <fieldset class="fs"><legend>A bidder who makes the bid scores</legend><div class="seg"><input type="radio" name="fMake" id="fMakeTook" value="took"${G.bidScore === 'bid' ? '' : ' checked'}><label for="fMakeTook">Points taken</label><input type="radio" name="fMake" id="fMakeBid" value="bid"${G.bidScore === 'bid' ? ' checked' : ''}><label for="fMakeBid">The bid</label></div></fieldset>
+  <fieldset class="fs"><legend>A bidder who falls short</legend><div class="seg"><input type="radio" name="fSet" id="fSetLose" value="lose"${G.setScore === 'zero' ? '' : ' checked'}><label for="fSetLose">Loses the bid</label><input type="radio" name="fSet" id="fSetZero" value="zero"${G.setScore === 'zero' ? ' checked' : ''}><label for="fSetZero">Scores zero</label></div></fieldset>
+  <label class="chk"><input type="checkbox" id="fBidOut"${G.bidOut ? ' checked' : ''}>The bidder goes out first</label>
+  <p class="hint">When more than one player or team reaches the target in the same round, the bidder wins.</p>
+  </div>
+  </div>
   <h3>Results</h3>
   <div class="row-acts"><button type="button" class="btn" data-act="copy">${icon('i-copy')}Copy results</button>${G.done ? '<button type="button" class="btn" data-act="resume">Resume game</button>' : ''}</div>
   <p class="hint" id="syncNote"></p>`;
@@ -933,30 +1180,42 @@ function refreshDlg() {
   const list = $('#plist');
   if (!list) return;
   const a = document.activeElement, fk = a && a.dataset ? a.dataset.fk : null;
-  const last = G.players.length - 1;
+  const last = G.players.length - 1, kind = G.teams ? 'Team' : 'Player';
+  $('#pHead').textContent = G.teams ? 'Teams' : 'Players';
+  $('#fNew').placeholder = `${kind} name`;
+  $('#fNewL').textContent = `New ${kind.toLowerCase()} name`;
   list.innerHTML = G.players.map((p, i) => {
     const [bg, fg] = col(p.c), nm = esc(pname(p));
-    return `<li><button type="button" class="tok" style="--pc:${bg};color:${fg}" data-act="pcolor" data-p="${p.id}" data-fk="pc:${p.id}" aria-label="Change color for ${nm}">${esc(initial(pname(p)))}</button><input class="inp" id="pn-${p.id}" data-p="${p.id}" value="${esc(p.name)}" maxlength="30" autocomplete="off" aria-label="Player ${i + 1} name"><button type="button" class="ib" data-act="pup" data-p="${p.id}" data-fk="pu:${p.id}" aria-label="Move ${nm} up"${i === 0 ? ' disabled' : ''}>${icon('i-up')}</button><button type="button" class="ib" data-act="pdown" data-p="${p.id}" data-fk="pd:${p.id}" aria-label="Move ${nm} down"${i === last ? ' disabled' : ''}>${icon('i-down')}</button><button type="button" class="ib" data-act="pdel" data-p="${p.id}" data-fk="px:${p.id}" aria-label="Remove ${nm}">${icon('i-trash')}</button></li>`;
+    const mem = G.teams ? `<input class="inp mem" id="pm-${p.id}" data-m="${p.id}" value="${esc(p.m.join(', '))}" maxlength="120" autocomplete="off" placeholder="Players, separated by commas" aria-label="Players on ${nm}">` : '';
+    return `<li><button type="button" class="tok" style="--pc:${bg};color:${fg}" data-act="pcolor" data-p="${p.id}" data-fk="pc:${p.id}" aria-label="Change color for ${nm}">${esc(initial(pname(p)))}</button><input class="inp" id="pn-${p.id}" data-p="${p.id}" value="${esc(p.name)}" maxlength="30" autocomplete="off" aria-label="${kind} ${i + 1} name"><button type="button" class="ib" data-act="pup" data-p="${p.id}" data-fk="pu:${p.id}" aria-label="Move ${nm} up"${i === 0 ? ' disabled' : ''}>${icon('i-up')}</button><button type="button" class="ib" data-act="pdown" data-p="${p.id}" data-fk="pd:${p.id}" aria-label="Move ${nm} down"${i === last ? ' disabled' : ''}>${icon('i-down')}</button><button type="button" class="ib" data-act="pdel" data-p="${p.id}" data-fk="px:${p.id}" aria-label="Remove ${nm}">${icon('i-trash')}</button>${mem}</li>`;
   }).join('');
-  const rec = G.players.length < MAXP ? recentNames() : [];
+  const rec = G.players.length < MAXP && !G.teams ? recentNames() : [];
   $('#chips').innerHTML = rec.length ? `<p class="hint">Add a recent player:</p>${rec.map(n => `<button type="button" class="chip" data-act="chip" data-n="${esc(n)}">${esc(n)}</button>`).join('')}` : '';
   const cat = G.mode === 'categories';
   $('#catBox').hidden = !cat;
-  $('#dealerBox').hidden = cat;
+  $('#roundBox').hidden = cat;
   $('#modeHint').textContent = cat ? 'Score a fixed list, like an end-of-game score sheet.' : 'Add a row for each round as you play.';
-  $('#firstBox').hidden = !G.dealer || !G.players.length;
-  $('#fFirst').innerHTML = G.players.map((p, i) => `<option value="${i}"${i === G.dealerStart % (G.players.length || 1) ? ' selected' : ''}>${esc(pname(p))}</option>`).join('');
+  $('#bidBox').hidden = !G.bids;
+  for (const [id, k] of [['fBidMin', 'bidMin'], ['fBidMax', 'bidMax'], ['fBidStep', 'bidStep']]) { const el = $('#' + id); if (el !== document.activeElement) el.value = G[k] ?? ''; }
+  refreshDealer();
   $('#addBtn').disabled = G.players.length >= MAXP;
   $('#fNew').disabled = G.players.length >= MAXP;
   updateSync();
   if (fk && !gameDlg.contains(document.activeElement)) { const el = gameDlg.querySelector(`[data-fk="${CSS.escape(fk)}"]`); if (el && !el.disabled) el.focus(); }
+}
+function refreshDealer() {
+  const sel = $('#fFirst');
+  if (!sel) return;
+  const s = seats();
+  $('#firstBox').hidden = !G.dealer || !s.length;
+  sel.innerHTML = s.map((x, i) => `<option value="${i}"${i === G.dealerStart % (s.length || 1) ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
 }
 function addPlayer(name) {
   if (G.players.length >= MAXP) return;
   name = String(name || '').trim().slice(0, 30);
   const known = name && H.flatMap(e => e.players).find(p => p.n.toLowerCase() === name.toLowerCase());
   const c = freeColor(known ? known.c : null);
-  change(() => { G.players.push({id: uid('p'), name: name || `Player ${G.players.length + 1}`, c}); });
+  change(() => { G.players.push({id: uid('p'), name: name || `Player ${G.players.length + 1}`, c, m: []}); });
   const inp = $('#fNew');
   if (inp) inp.value = '';
   refreshDlg();
@@ -967,7 +1226,7 @@ function playerAct(a, pid) {
   if (a === 'pcolor') change(() => { G.players[i].c = nextColor(G.players[i].c); });
   else if (a === 'pup' && i > 0) change(() => { G.players.splice(i - 1, 0, G.players.splice(i, 1)[0]); });
   else if (a === 'pdown' && i < G.players.length - 1) change(() => { G.players.splice(i + 1, 0, G.players.splice(i, 1)[0]); });
-  else if (a === 'pdel') change(() => { G.players.splice(i, 1); for (const r of G.rows) delete r.s[pid]; });
+  else if (a === 'pdel') change(() => { G.players.splice(i, 1); for (const r of G.rows) { delete r.s[pid]; if (r.t) delete r.t[pid]; if (r.b && r.b.p === pid) { delete r.b; delete r.t; } } });
   refreshDlg();
 }
 function applyCats() {
@@ -1111,11 +1370,25 @@ document.addEventListener('click', e => {
     case 'pcolor': case 'pup': case 'pdown': case 'pdel': playerAct(a, b.dataset.p); break;
     case 'rowclear': case 'rowdel': rowAct(a); break;
     case 'resume': gameDlg.close(); change(() => { G.done = false; }); break;
+    case 'hbidder': hand.bidder = b.dataset.p; if (hand.bid != null) toStep2(); else renderHand(); break;
+    case 'hbid': hand.bid = +b.dataset.v; if (hand.bidder) toStep2(); else renderHand(); break;
+    case 'hback': hand.step = 1; renderHand(); break;
+    case 'hside': setActive(b.dataset.p); break;
+    case 'hsave': saveHand(); break;
+    case 'hplain': handPlain(); break;
   }
 });
 padEl.addEventListener('click', e => { const k = e.target.closest('[data-k]'); if (k) key(k.dataset.k); });
 tallyEl.addEventListener('change', e => { if (e.target.id === 'tallyRow' && e.target.value) { ui.tallyRow = e.target.value; render(); } });
+function handKeys(e) {
+  if (hand.step !== 2 || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key, m = /^\d$/.test(k) ? k : k === '+' ? '+' : k === 'Backspace' ? 'back' : k === 'Delete' ? 'clear' : null;
+  const btn = e.target.closest && e.target.closest('button');
+  if (m) { e.preventDefault(); hkey(m); }
+  else if (k === 'Enter' && (!btn || btn.closest('.keys') || btn.closest('.took'))) { e.preventDefault(); if (handReady()) saveHand(); else handNext(); }
+}
 document.addEventListener('keydown', e => {
+  if (handDlg.open) { handKeys(e); return; }
   if (document.querySelector('dialog[open]')) return;
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1128,29 +1401,51 @@ document.addEventListener('keydown', e => {
   const c = e.target.closest && e.target.closest('.c');
   if (c && (/^\d$/.test(k) || k === '-')) { e.preventDefault(); openPad(c.dataset.r, c.dataset.p, 'set', k); }
 });
-gameDlg.addEventListener('focusin', e => { if (e.target.matches('#fTitle, #fTarget, .plist input')) editSnap = JSON.stringify({g: G, h: H}); });
+gameDlg.addEventListener('focusin', e => { if (e.target.matches('#fTitle, #fTarget, #fFloor, #fPer, #fBidMin, #fBidMax, #fBidStep, .plist input')) editSnap = JSON.stringify({g: G, h: H}); });
+const digits = el => { const d = el.value.replace(/\D/g, ''); if (d !== el.value) el.value = d; return d; };
 gameDlg.addEventListener('input', e => {
   const t = e.target;
   if (t.id === 'fTitle') { editPush(); change(() => { G.title = t.value.slice(0, 60); }, {noUndo: true}); }
   else if (t.id === 'fTarget') { const d = t.value.replace(/\D/g, ''); if (d !== t.value) t.value = d; editPush(); change(() => { G.target = +d > 0 ? +d : null; }, {noUndo: true}); }
-  else if (t.matches('.plist input')) {
+  else if (t.id === 'fFloor') { const d = digits(t); editPush(); change(() => { G.floor = +d > 0 ? -d : null; }, {noUndo: true}); }
+  else if (t.id === 'fPer') { const d = digits(t); editPush(); change(() => { G.perRound = +d > 0 ? +d : null; }, {noUndo: true}); }
+  else if (['fBidMin', 'fBidMax', 'fBidStep'].includes(t.id)) {
+    const d = digits(t), k = {fBidMin: 'bidMin', fBidMax: 'bidMax', fBidStep: 'bidStep'}[t.id];
+    editPush();
+    change(() => { G[k] = d === '' ? null : k === 'bidStep' ? Math.max(1, +d) : +d; }, {noUndo: true});
+  } else if (t.matches('.plist input[data-m]')) {
+    const p = G.players.find(x => x.id === t.dataset.m);
+    if (!p) return;
+    editPush();
+    change(() => { p.m = splitNames(t.value); }, {noUndo: true});
+    refreshDealer();
+  } else if (t.matches('.plist input[data-p]')) {
     const p = G.players.find(x => x.id === t.dataset.p);
     if (!p) return;
     editPush();
     change(() => { p.name = t.value.slice(0, 30); }, {noUndo: true});
     const tk = t.parentElement.querySelector('.tok');
     if (tk) tk.textContent = initial(pname(p));
+    refreshDealer();
   }
 });
 gameDlg.addEventListener('change', e => {
   const t = e.target;
   if (t.name === 'fWin') change(() => { G.low = t.value === 'low'; });
+  else if (t.id === 'fTeams') { change(() => { G.teams = t.checked; }); refreshDlg(); }
+  else if (t.name === 'fMake') change(() => { G.bidScore = t.value === 'bid' ? 'bid' : 'took'; });
+  else if (t.name === 'fSet') change(() => { G.setScore = t.value === 'zero' ? 'zero' : 'lose'; });
+  else if (t.id === 'fBidOut') change(() => { G.bidOut = t.checked; });
+  else if (t.id === 'fBids') {
+    change(() => { G.bids = t.checked; if (t.checked) { const d = defaultBids(); if (G.bidMin == null) G.bidMin = d.min; if (G.bidMax == null) G.bidMax = d.max; if (G.bidStep == null) G.bidStep = d.step; } });
+    refreshDlg();
+  }
   else if (t.name === 'fMode') { change(() => { G.mode = t.value === 'categories' ? 'categories' : 'rounds'; }); $('#fCatList').value = G.rows.map((r, i) => lab(r, i)).join('\n'); refreshDlg(); }
   else if (t.id === 'fCatList') applyCats();
   else if (t.id === 'fDealer') { change(() => { G.dealer = t.checked; }); refreshDlg(); }
   else if (t.id === 'fFirst') change(() => { G.dealerStart = +t.value; });
   else if (t.id === 'fTitle' && !t.value.trim()) { change(() => { G.title = 'Game night'; }, {noUndo: true}); t.value = G.title; }
-  else if (t.matches('.plist input') && !t.value.trim()) {
+  else if (t.matches('.plist input[data-p]') && !t.value.trim()) {
     const i = G.players.findIndex(x => x.id === t.dataset.p);
     if (i >= 0) { change(() => { G.players[i].name = `Player ${i + 1}`; }, {noUndo: true}); t.value = G.players[i].name; }
   }
@@ -1175,7 +1470,9 @@ rowDlg.addEventListener('close', () => {
 });
 newDlg.addEventListener('close', applyPending);
 copyDlg.addEventListener('close', applyPending);
-for (const d of [gameDlg, rowDlg, newDlg, copyDlg]) d.addEventListener('click', e => { if (e.target === d) d.close(); });
+handDlg.addEventListener('close', applyPending);
+handDlg.addEventListener('click', e => { const k = e.target.closest('[data-hk]'); if (k) hkey(k.dataset.hk); });
+for (const d of [gameDlg, rowDlg, newDlg, copyDlg, handDlg]) d.addEventListener('click', e => { if (e.target === d) d.close(); });
 wide.addEventListener('change', () => { if (wide.matches && ui.tab === 'history') { ui.tab = 'sheet'; render(); } });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { clearTimeout(saveTimer); flush('g'); flush('h'); } });
 
