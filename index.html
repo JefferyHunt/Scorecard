@@ -1061,14 +1061,23 @@ function handNext() {
 function saveHand() {
   if (!handReady()) return;
   const {rid, bidder, bid} = hand, took = {};
+  let saved = null;
   for (const id of handSides()) took[id] = hand.took[id];
   change(() => {
     let r = rid ? G.rows.find(x => x.id === rid) : null;
     if (!r) { r = {id: uid('r'), label: '', s: {}}; G.rows.push(r); }
     r.b = {p: bidder, v: bid};
     r.t = took;
+    saved = r.id;
   });
   handDlg.close();
+  revealRow(saved);
+}
+function revealRow(rid) {
+  requestAnimationFrame(() => {
+    const b = rid && sheetEl.querySelector(`.rl[data-r="${CSS.escape(rid)}"]`);
+    if (b && ui.tab === 'sheet') b.closest('tr').scrollIntoView({block: 'nearest', inline: 'nearest'});
+  });
 }
 function handPlain() {
   const rid = hand.rid, cur = rid ? G.rows.find(x => x.id === rid) : null;
@@ -1484,6 +1493,8 @@ function start(d) {
   ui.tab = src && ['sheet', 'tally', 'history'].includes(src.tab) ? src.tab : 'sheet';
   if (wide.matches && ui.tab === 'history') ui.tab = 'sheet';
   render();
+  const cur = G.rows[Math.min(curRow(), G.rows.length - 1)];
+  if (cur) revealRow(cur.id);
   connect();
 }
 if (window.claude && window.claude.hot && typeof window.claude.hot.snapshot === 'function') window.claude.hot.snapshot(() => ({g: G, h: H, tab: ui.tab}));
