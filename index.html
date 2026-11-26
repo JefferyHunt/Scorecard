@@ -886,9 +886,9 @@ function closePad() { pad.open = false; pad.r = pad.p = null; pad.x = ''; render
 function openDlg(d) { if (pad.open) commitPad(); if (!d.open) d.showModal(); }
 function syncText() {
   if (cloud.ok) return cloud.heard ? 'Games save to your Claude account, so they follow you to your other devices.' : cloud.slow ? 'Your account can’t be reached right now. Changes are saved in this browser.' : 'Connecting to your Claude account.';
-  return localOK ? 'Games save on this device, so they’re here the next time you open Scorecard.' : 'This device isn’t saving games, so scores clear when the app closes.';
+  return localOK ? '' : 'This device isn’t saving games.';
 }
-const updateSync = () => { const el = $('#syncNote'); if (el) el.textContent = syncText(); };
+const updateSync = () => { const el = $('#syncNote'); if (el) { el.textContent = syncText(); el.hidden = !el.textContent; } };
 function recentNames() {
   const have = new Set(G.players.map(p => pname(p).toLowerCase())), out = [];
   for (const e of H) for (const p of e.players) { const k = p.n.trim().toLowerCase(); if (k && !have.has(k)) { have.add(k); out.push(p.n.trim()); } }

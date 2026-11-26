@@ -9,8 +9,6 @@ https://jefferyhunt.github.io/Scorecard/.
 2. Tap Share, then tap Add to Home Screen.
 3. Leave Open as Web App turned on, and tap Add.
 
-Scorecard opens full screen, works offline, and saves games on the device.
-
 ## Files
 
 - `index.html`: the app.
